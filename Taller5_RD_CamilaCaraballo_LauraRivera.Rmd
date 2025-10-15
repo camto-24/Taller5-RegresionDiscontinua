@@ -1,0 +1,83 @@
+---
+title: "Taller 5 - Regresión Discontinua"
+author: "Maria Camila Caraballo, Laura Sarif Rivera"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+geometry: top=1.5cm, bottom=1.5cm, left=2cm, right=2cm
+output_dir: outputs
+header-includes: \usepackage{adjustbox}
+---
+
+```{r setup, include= FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+knitr::opts_knit$set(root.dir = "C:/1. MECA/2025/EVALUACIACÓN DE IMPACTO- Raachid Raaj/Taller 4- Diiff and Diif/Taller4-DifinDif")
+
+tinytex::tlmgr_update(self = TRUE, all = TRUE)
+
+if (!requireNamespace("tinytex", quietly = TRUE)) {
+  install.packages("tinytex")
+}
+
+# Verificar si TinyTeX está instalado
+if (tinytex::is_tinytex()) {
+  message("TinyTeX detectado. Actualizando instalación...")
+
+  # Actualizar gestor de paquetes (self) y todos los paquetes
+  tinytex::tlmgr_update(self = TRUE, all = TRUE)
+
+  message("✅ TinyTeX actualizado correctamente.")
+} else {
+  message("No se detecta TinyTeX. Si usas MikTeX o TeX Live, actualiza manualmente.")
+}
+```
+
+```{r results='asis', echo=FALSE}
+# Cargar liberias y paquetes
+
+# Instalando pacman si se requiere
+if (!require("pacman")) install.packages("pacman")
+
+# Cargando los paquetes usando pacman
+pacman::p_load(
+  
+  # A) Manipulación, limpieza y visualización de datos
+  tidyverse,    # Colección de paquetes esenciales (incluye dplyr, ggplot2, etc.)
+  dplyr,        # Manipulación de datos (ya incluido en tidyverse, pero lo dejamos explícito).
+  ggplot2,      # Visualización de datos (incluido en tidyverse).
+  scales,       # Manejo de escalas (ej. porcentajes, comas).
+  skimr,        # Resúmenes estadísticos rápidos de data.frames.
+  
+  # B) Modelado y análisis estadístico/econométrico
+  fixest,       # Modelos de efectos fijos de alto rendimiento.
+  plm,          # Modelos para datos de panel.
+  AER,          # Herramientas de econometría aplicada.
+  lmtest,       # Pruebas de hipótesis para modelos de regresión.
+  sandwich,     # Errores estándar robustos.
+  survey,       # Análisis de encuestas complejas.
+  
+  # C) Importación, exportación y generación de reportes
+  haven,        # Lectura/escritura de Stata, SAS, SPSS.
+  stargazer,    # Tablas de regresión con formato publicable.
+  knitr,        # Reportes dinámicos en RMarkdown.
+  modelsummary, # Tablas y resúmenes comparativos de modelos.
+  tinytex       # Soporte para compilar a PDF con LaTeX en RMarkdown.
+)
+
+library(lfe)
+```
+
+## Regresión Discontinua
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
