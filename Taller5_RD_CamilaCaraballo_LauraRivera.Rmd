@@ -81,7 +81,9 @@ $$y_i=α+βm_i+f(x_i )+ε_i$$
 donde y_i es la proporción de mujeres entre 15 y 20 años con educación secundaria completa en el año 2000, x_i es el margen de votos con el que ganó o perdió el candidato del partido islámico, f(⋅) es un polinomio de grado n de la variable x_i, m_i es una dicótoma que toma el valor de uno si x_i≥0, es decir, si el alcalde que llegó al poder en 1994 era del partido Islámico y ε_i es el término del error. La ecuación es estimada en un vecindario alrededor del corte, el cual, en este caso, es cero.
 
 ## 0. Paso inicial
-Para esto se deberá eliminar aleatoriamente el 5% de las observaciones y usar la base restante.  La semilla que deben usar para que sus resultados sean replicables es su código de estudiante. 
+
+Para esto se deberá eliminar aleatoriamente el 5% de las observaciones y usar la base restante. La semilla que deben usar para que sus resultados sean replicables es su código de estudiante.
+
 ```{r}
 data <- read_dta("Datos/turquia.dta")
 
@@ -93,16 +95,7 @@ data$selecc <- rbinom(n = nrow(data), size = 1, prob = 0.05)
 
 # Eliminar las observaciones seleccionadas
 turquia <- subset(data, selecc == 0)
-```
 
-## 1)	¿Por qué el autor usa la metodología de Regresión Discontinua para identificar los efectos de interés? ¿Cuál es la intuición detrás? ¿Cuál es el supuesto de identificación?
-
-(Cami)
-
-## 2)	Para cada género, presenten en una tabla  los resultados de estimar las siguientes especificaciones
-
-a. Ecuación principal, para toda la muestra, sin incluir controles.
-```{r}
 # Renombrar la variable
 turquia <- turquia %>%
   rename(X = ilmvsm1994)
@@ -112,12 +105,22 @@ turquia <- turquia %>%
   mutate(X_m = X * i98)
 
 # Se revisa las estadísticas de las dos variables
-summary(turquia[, c("hischshr1520m", "hischshr1520f")])
+#summary(turquia[, c("hischshr1520m", "hischshr1520f")])
 
 # Se pasan a proporción ambas variables
 turquia <- turquia %>%
   mutate(hischshr1520m = hischshr1520m / 100)
+```
 
+## 1) ¿Por qué el autor usa la metodología de Regresión Discontinua para identificar los efectos de interés? ¿Cuál es la intuición detrás? ¿Cuál es el supuesto de identificación?
+
+(Cami)
+
+## 2) Para cada género, presenten en una tabla los resultados de estimar las siguientes especificaciones
+
+a.  Ecuación principal, para toda la muestra, sin incluir controles.
+
+```{r}
 # Regresión con errores estándar agrupados por provincia
 modelo1 <- lm(hischshr1520f ~ i98, data = turquia)
 print(modelo1)
@@ -127,42 +130,95 @@ cluster_se <- vcovCL(modelo1, cluster = ~ prov_num)
 
 # Resultados con errores agrupados
 coeftest(modelo1, vcov = cluster_se)
-```
-b. Ecuación principal, para toda la muestra, con controles.
-```{r}
 
-# Regresión para mujeres
-modelo_f <- feols(
-  hischshr1520f ~ i98 + X + X_m +
-    vshr_islam1994 + partycount + lpop1994 +
-    ageshr19 + ageshr60 + sexr + shhs +
-    merkezi + merkezp + subbuyuk + buyuk +
-    factor(prov_num),
-  data = turquia,
-  cluster = ~prov_num
+# Mostrar resultados con stargazer
+tabla_cluster <- capture.output(
+  stargazer(modelo1,
+            type = "latex",
+            se = list(cluster_se),   # errores agrupados
+            dep.var.labels = "Participación escolar",
+            covariate.labels = c("Cobertura de TV Globo (1998)"),
+            title = "Efecto de Globo sobre la participación escolar",
+            label = "tab:globo_cluster",
+            out = "Tablas/modelo_globo_cluster.tex",
+            digits = 3,
+            notes = "Errores estándar agrupados por provincia.")
 )
-print(modelo_f)
 
-# Regresión para hombres
-modelo_m <- feols(
-  hischshr1520m ~ i98 + X + X_m +
-    vshr_islam1994 + partycount + lpop1994 +
-    ageshr19 + ageshr60 + sexr + shhs +
-    merkezi + merkezp + subbuyuk + buyuk +
-    factor(prov_num),
-  data = turquia,
-  cluster = ~prov_num
-)
-print(modelo_m)
+# Quitar comentarios de stargazer (para un .tex limpio)
+tabla_cluster <- tabla_cluster[!grepl("^%", tabla_cluster)]
 
+# Mostrar tabla en consola (opcional)
+cat(tabla_cluster, sep = "\n")
 ```
 
-c. Ecuación principal, para la submuestra a  h unidades alrededor del corte, con controles.
+b.  Ecuación principal, para toda la muestra, con controles.
+
 ```{r}
-# Filtrar la submuestra dentro del rango -0.24 a 0.24
+# Modelos con lm()
+modelo_f_lm <- lm(hischshr1520f ~ i98 + X + X_m +
+                     vshr_islam1994 + partycount + lpop1994 +
+                     ageshr19 + ageshr60 + sexr + shhs +
+                     merkezi + merkezp + subbuyuk + buyuk +
+                     factor(prov_num),
+                   data = turquia)
+
+modelo_m_lm <- lm(hischshr1520m ~ i98 + X + X_m +
+                     vshr_islam1994 + partycount + lpop1994 +
+                     ageshr19 + ageshr60 + sexr + shhs +
+                     merkezi + merkezp + subbuyuk + buyuk +
+                     factor(prov_num),
+                   data = turquia)
+
+# Errores estándar agrupados por provincia
+se_f <- sqrt(diag(vcovCL(modelo_f_lm, cluster = ~prov_num)))
+se_m <- sqrt(diag(vcovCL(modelo_m_lm, cluster = ~prov_num)))
+
+# Exportar con stargazer y capturar la salida
+tabla_cluster <- capture.output(
+  stargazer(modelo_f_lm, modelo_m_lm, se = list(se_f, se_m),
+            type = "latex",
+            dep.var.labels = c("Escolarización femenina", "Escolarización masculina"),
+            column.labels = c("Mujeres", "Hombres"),
+            covariate.labels = c(
+              "Cobertura Globo (i98)",
+              "X",
+              "X_m",
+              "Islam 1994",
+              "Número de partidos",
+              "Población 1994",
+              "Edad 19",
+              "Edad 60",
+              "Sexo",
+              "Shhs",
+              "Merkezi",
+              "Merkezp",
+              "Subbuyuk",
+              "Buyuk"
+            ),
+            title = "Impacto de Globo sobre escolarización por género",
+            label = "tab:globo_genero",
+            digits = 3,
+            notes = "Errores estándar agrupados por provincia.")
+)
+
+# Quitar comentarios de stargazer (para un .tex limpio)
+tabla_cluster <- tabla_cluster[!grepl("^%", tabla_cluster)]
+
+# Guardar en archivo .tex
+writeLines(tabla_cluster, "Tablas/modelos_globo_genero.tex")
+
+# Mostrar tabla en consola (opcional)
+cat(tabla_cluster, sep = "\n")
+```
+
+c.  Ecuación principal, para la submuestra a h unidades alrededor del corte, con controles.
+
+```{r}
+# Filtrar submuestra
 turquia_sub <- subset(turquia, X >= -0.24 & X <= 0.24)
 
-# Modelo Mujeres
+# Modelos en la submuestra
 modelo_f_sub <- feols(
   hischshr1520f ~ i98 + X + X_m +
     vshr_islam1994 + partycount + lpop1994 +
@@ -173,7 +229,6 @@ modelo_f_sub <- feols(
   cluster = ~prov_num
 )
 
-# Modelo Hombres
 modelo_m_sub <- feols(
   hischshr1520m ~ i98 + X + X_m +
     vshr_islam1994 + partycount + lpop1994 +
@@ -184,9 +239,26 @@ modelo_m_sub <- feols(
   cluster = ~prov_num
 )
 
+# Exportar tabla a LaTeX con etable
+etable(
+  modelo_f_sub, modelo_m_sub,
+  se = "cluster",
+  cluster = ~prov_num,
+  tex = TRUE,
+  file = "Tablas/modelos_globo_genero_sub.tex",
+  title = "Impacto de Globo sobre escolarización por género (submuestra X ∈ [-0.24, 0.24])",
+  dict = c(hischshr1520f = "Escolarización femenina",
+           hischshr1520m = "Escolarización masculina",
+           i98 = "Cobertura Globo (i98)"),
+  keep = c("i98", "X", "X_m", "vshr_islam1994", "partycount", "lpop1994",
+           "ageshr19", "ageshr60", "sexr", "shhs", "merkezi", "merkezp",
+           "subbuyuk", "buyuk")  
+)
+
 ```
 
-d. Ecuación principal, para la submuestra a  h/2 unidades alrededor del corte, con controles
+d.  Ecuación principal, para la submuestra a h/2 unidades alrededor del corte, con controles
+
 ```{r}
 # Filtrar la submuestra dentro del rango -0.12 a 0.12
 turquia_sub_h2 <- subset(turquia, X >= -0.12 & X <= 0.12)
@@ -212,55 +284,98 @@ modelo_m_h2 <- feols(
   data = turquia_sub_h2,
   cluster = ~prov_num
 )
+
+# Exportar tabla a LaTeX
+etable(
+  modelo_f_h2, modelo_m_h2,
+  se = "cluster",
+  cluster = ~prov_num,
+  tex = TRUE,  # Genera LaTeX
+  file = "Tablas/modelos_globo_genero_sub_h2.tex",
+  title = "Impacto de Globo sobre escolarización por género (submuestra X ∈ [-0.12, 0.12])",
+  dict = c(
+    hischshr1520f = "Escolarización femenina",
+    hischshr1520m = "Escolarización masculina",
+    i98 = "Cobertura Globo (i98)"
+  ),
+  keep = c("i98", "X", "X_m", "vshr_islam1994", "partycount", "lpop1994",
+           "ageshr19", "ageshr60", "sexr", "shhs", "merkezi", "merkezp",
+           "subbuyuk", "buyuk")
+)
 ```
 
-
-donde h=0.24 es el ancho de banda óptimo estimado por los autores. Para las especificaciones con controles, supongan que: 
+donde h=0.24 es el ancho de banda óptimo estimado por los autores. Para las especificaciones con controles, supongan que:
 
 $$f(x_i )= γx _i+δx_i×m_i$$
 
-Es decir, un polinomio de grado uno con pendiente distinta a cada lado del corte.  Para las especificaciones sin controles, no incluyan ningún polinomio. Todas las especificaciones deben usar errores estándar clúster a nivel de provincia. 
+Es decir, un polinomio de grado uno con pendiente distinta a cada lado del corte. Para las especificaciones sin controles, no incluyan ningún polinomio. Todas las especificaciones deben usar errores estándar clúster a nivel de provincia.
 
 ## 3) A partir de los resultados encontrados en el anterior punto, respondan:
 
-a. ¿Por qué cambian los coeficientes entre especificaciones?
-b. ¿Cuál parece ser el impacto de la llegada al poder del Partido Islámico para las mujeres? ¿Parece ser este impacto robusto a las especificaciones?
+a.  ¿Por qué cambian los coeficientes entre especificaciones?
+b.  ¿Cuál parece ser el impacto de la llegada al poder del Partido Islámico para las mujeres? ¿Parece ser este impacto robusto a las especificaciones?
 
 Cami
 
 ## 4) Finalmente, presenten evidencia a favor (o en contra) del supuesto de identificación. Para esto,
 
-a. Presenten en una gráfica la distribución kernel o el histograma  de la variable de asignación x_i. ¿Parece haber manipulación? 
-```{r}
-ggplot(turquia, aes(x = X)) +
-  geom_histogram(binwidth = 0.02, color = "white", fill = "blue", boundary = 0) +
+a.  Presenten en una gráfica la distribución kernel o el histograma de la variable de asignación x_i. ¿Parece haber manipulación?
+
+```{r}1
+# Crear el gráfico de densidad (curva kernel)
+grafico_kernel <- ggplot(turquia, aes(x = X)) +
+  geom_density(fill = "blue", alpha = 0.5) +       # Curva kernel
   geom_vline(xintercept = 0, color = "red", linetype = "dashed", linewidth = 1) +
   labs(
-    title = "Distribución de la variable de asignación (X)",
+    title = "Distribución de la variable de asignación (X) - Kernel",
     x = "Variable de asignación (X)",
-    y = "Frecuencia"
+    y = "Densidad"
   ) +
   theme_minimal()
 
+# Mostrar en consola
+grafico_kernel
+
+# Guardar el gráfico
+ggsave("Tablas/curva_kernel_X.png", plot = grafico_kernel, width = 8, height = 5, dpi = 300)
+
 ```
 
-b. En una tabla presenten los resultados de estimar la ecuación de interés, sin controles, pero incluyendo f(x_i), tomando como variables dependientes: i) la elección de un alcalde del partido Islámico en 1984 (i89) y ii) el logaritmo de la población en 1994 (lpop1994). Para esto, usen únicamente la muestra de elecciones alrededor del ancho de banda óptimo. Dados sus resultados, ¿parece haber continuidad en estas variables?
+b.  En una tabla presenten los resultados de estimar la ecuación de interés, sin controles, pero incluyendo f(x_i), tomando como variables dependientes: i) la elección de un alcalde del partido Islámico en 1984 (i89) y ii) el logaritmo de la población en 1994 (lpop1994). Para esto, usen únicamente la muestra de elecciones alrededor del ancho de banda óptimo. Dados sus resultados, ¿parece haber continuidad en estas variables?
+
 ```{r}
-modelsummary(
-  list("1984: Alcalde islámico" = mod_i89,
-       "Log Población 1994" = mod_lpop),
-  vcov = list(se_i89, se_lpop),
-  stars = TRUE,
-  gof_omit = 'AIC|BIC|Log.Lik',
-  title = "Tabla: Pruebas de continuidad (sin controles, con f(X))",
-  add_rows = data.frame(
-    term = c("Controles", "Ancho de banda"),
-    `1984: Alcalde islámico` = c("No", "0.24"),
-    `Log Población 1994` = c("No", "0.24")
-  ),
-  output = "punto4b.docx"
+# Modelo para i89
+modelo_i89 <- feols(
+  i89 ~ i98 + X + I(X^2) + factor(prov_num),
+  data = turquia,
+  cluster = ~prov_num
 )
+
+# Modelo para lpop1994
+modelo_lpop <- feols(
+  lpop1994 ~ i98 + X + I(X^2) + factor(prov_num),
+  data = turquia,
+  cluster = ~prov_num
+)
+
+# Tabla de resultados
+etable(
+  modelo_i89, modelo_lpop,
+  se = "cluster",
+  cluster = ~prov_num,
+  tex = TRUE,  # TRUE para LaTeX, FALSE para consola
+  file = "Tablas/continuidad_rd.tex",
+  title = "Regresión Discontinua: Prueba de continuidad sin controles",
+  dict = c(
+    i89 = "Elección de alcalde islámico 1984",
+    lpop1994 = "Log Población 1994",
+    i98 = "Cobertura Globo (i98)",
+    X = "X",
+    "I(X^2)" = "X al cuadrado"
+  ),
+  keep = c("i98", "X", "I(X^2)")
+)
+
 ```
 
-c. Dados sus resultados en los incisos a y b, ¿es plausible el supuesto de identificación? Expliquen por qué.
-Cami
+c.  Dados sus resultados en los incisos a y b, ¿es plausible el supuesto de identificación? Expliquen por qué. Cami
