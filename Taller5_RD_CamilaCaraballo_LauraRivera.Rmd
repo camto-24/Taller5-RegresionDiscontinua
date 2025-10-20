@@ -85,98 +85,106 @@ donde y_i es la proporción de mujeres entre 15 y 20 años con educación secund
 Para esto se deberá eliminar aleatoriamente el 5% de las observaciones y usar la base restante. La semilla que deben usar para que sus resultados sean replicables es su código de estudiante.
 
 ```{r}
-data <- read_dta("Datos/turquia.dta")
+# Definir carpeta de datos (ruta relativa) 
+path <- file.path(getwd(), "Datos/turquia.dta")
+data <- read_dta(path)
 
-# Fijar semilla 
-set.seed(123)
+# Fijar semilla con el cod de Laura
+set.seed(202421904)
 
-# Crear variable de selección aleatoria
-data$selecc <- rbinom(n = nrow(data), size = 1, prob = 0.05)
+# Eliminar aletoriamente el 5% de las obs
+n_eliminar <- round(0.05 * nrow(data))
+filas_eliminar <- sample(1:nrow(data), n_eliminar)
+turquia <- data[-filas_eliminar, ]
+```
 
-# Eliminar las observaciones seleccionadas
-turquia <- subset(data, selecc == 0)
-
-# Renombrar la variable
+```{r}
+# Tratamiento de si se eligio un alcalde islamico
 turquia <- turquia %>%
-  rename(X = ilmvsm1994)
+  rename(xi = ilmvsm1994) %>%       # renombrar la running variable
+  mutate(
+    di = ifelse(xi >= 0, 1, 0),    # tratamiento: alcalde islámico
+    hischshr1520m = hischshr1520m / 100,  # pasar a proporción
+    hischshr1520f = hischshr1520f / 100
+  )
 
-# Crear iteracción
-turquia <- turquia %>%
-  mutate(X_m = X * i98)
-
-# Se revisa las estadísticas de las dos variables
-#summary(turquia[, c("hischshr1520m", "hischshr1520f")])
-
-# Se pasan a proporción ambas variables
-turquia <- turquia %>%
-  mutate(hischshr1520m = hischshr1520m / 100)
 ```
 
 ## 1) ¿Por qué el autor usa la metodología de Regresión Discontinua para identificar los efectos de interés? ¿Cuál es la intuición detrás? ¿Cuál es el supuesto de identificación?
 
-(Cami)
+Erik Meyersson (2014) en su paper Islamic Rule And The Empowerment of the Poor and Pious busca identificar un efecto causal de las elecciones de particuos islámicos de los municipios en Turquia sobre los resultados de empoderamiento de las mujeres medido como la proporción de jóvenes entre 15 y 20 años con educación secundaria completa. Para ello utiliza la metodología de Regresión Discontinua (RD) aprovechando que la asignación del tratamiento, es decir, si es un alcalde islámico no es aleatoria, dado que los municipios que eligen a este tipo de líderes pueden diferir en factores culturales, religiosos o socioeconómicos, una simple comparación entre municipios con y sin alcalde islámico generaría estimaciones sesgadas.La estrategia de RD permite aproximarse a un experimento natural. La intuición es que los municipios donde el candidato islámico ganó o perdió por un margen pequeño puede ser comparable en todas sus características observables y no observables, de modo que el hecho de haber obtenido la alcaldía o no puede considerarse casi aleatorio. 
+
+El supuesto de identificación implica que, en ausencia del tratamiento, es decir, de haber tenido un alcalde del partido islámico, los resultados potenciales, como la proporción de mujeres jóvenes con educación secundaria completa serían continuos en torno al punto de corte del margen electoral. Esto implica que los municipios donde el candidato islámico ganó o perdió por muy poco son, en promedio, comparables en todas las características relevantes que podrían afectar el empoderamiento femenino.
 
 ## 2) Para cada género, presenten en una tabla los resultados de estimar las siguientes especificaciones
 
 a.  Ecuación principal, para toda la muestra, sin incluir controles.
 
 ```{r}
-# Regresión con errores estándar agrupados por provincia
-modelo1 <- lm(hischshr1520f ~ i98, data = turquia)
-print(modelo1)
+# Primer modelo sin controles para ambos sexos
+modelo_f <- lm(hischshr1520f ~ di + xi, data = turquia)  # mujeres
+modelo_m <- lm(hischshr1520m ~ di + xi, data = turquia)  # hombres
 
 # Errores estándar agrupados por provincia
-cluster_se <- vcovCL(modelo1, cluster = ~ prov_num)
+se_f <- sqrt(diag(vcovCL(modelo_f, cluster = ~ prov_num)))
+se_m <- sqrt(diag(vcovCL(modelo_m, cluster = ~ prov_num)))
 
-# Resultados con errores agrupados
-coeftest(modelo1, vcov = cluster_se)
-
-# Mostrar resultados con stargazer
-tabla_cluster <- capture.output(
-  stargazer(modelo1,
-            type = "latex",
-            se = list(cluster_se),   # errores agrupados
-            dep.var.labels = "Participación escolar",
-            covariate.labels = c("Cobertura de TV Globo (1998)"),
-            title = "Efecto de Globo sobre la participación escolar",
-            label = "tab:globo_cluster",
-            out = "Tablas/modelo_globo_cluster.tex",
-            digits = 3,
-            notes = "Errores estándar agrupados por provincia.")
+# Tabla en Latex para Pdf
+tabla1 <- capture.output(
+  stargazer(
+    modelo_f, modelo_m,
+    type = "latex",
+    se = list(se_f, se_m),
+    title = "Regresión Discontinua: efecto de alcaldes islámicos sobre educación secundaria",
+    column.labels = c("Mujeres", "Hombres"),
+    dep.var.labels = "Proporción con secundaria completa (15–20 años)",
+    covariate.labels = c("Alcalde islámico (Dᵢ)", "Running Variable(Xᵢ)"),
+    notes = "Errores estándar agrupados por provincia.",
+    digits = 3,
+    label = "tab:rd_mujeres_hombres",
+    header = FALSE,  
+    table.placement = "ht!"
+  )
 )
 
 # Quitar comentarios de stargazer (para un .tex limpio)
-tabla_cluster <- tabla_cluster[!grepl("^%", tabla_cluster)]
+tabla1 <- tabla1[!grepl("^%", tabla1)]
+
+# --- Guardar .tex limpio ---
+writeLines(tabla1, "Tablas/tabla1.tex")
 
 # Mostrar tabla en consola (opcional)
-cat(tabla_cluster, sep = "\n")
+cat(tabla1, sep = "\n")
 ```
 
 b.  Ecuación principal, para toda la muestra, con controles.
 
 ```{r}
-# Modelos con lm()
-modelo_f_lm <- lm(hischshr1520f ~ i98 + X + X_m +
-                     vshr_islam1994 + partycount + lpop1994 +
-                     ageshr19 + ageshr60 + sexr + shhs +
-                     merkezi + merkezp + subbuyuk + buyuk +
-                     factor(prov_num),
-                   data = turquia)
+# Con controles y polinomio lineal 
+# Mujeres
+modelo_f2 <- lm(hischshr1520f ~ di + xi + I(xi*di) +
+                      partycount + lpop1994 +
+                      ageshr19 + ageshr60 + sexr + shhs +
+                      merkezi + merkezp + subbuyuk + buyuk +
+                      factor(prov_num),
+                    data = turquia)
 
-modelo_m_lm <- lm(hischshr1520m ~ i98 + X + X_m +
-                     vshr_islam1994 + partycount + lpop1994 +
-                     ageshr19 + ageshr60 + sexr + shhs +
-                     merkezi + merkezp + subbuyuk + buyuk +
-                     factor(prov_num),
-                   data = turquia)
+# Hombres
+modelo_m2 <- lm(hischshr1520m ~ di + xi + I(xi*di) +
+                      partycount + lpop1994 +
+                      ageshr19 + ageshr60 + sexr + shhs +
+                      merkezi + merkezp + subbuyuk + buyuk +
+                      factor(prov_num),
+                    data = turquia)
 
-# Errores estándar agrupados por provincia
-se_f <- sqrt(diag(vcovCL(modelo_f_lm, cluster = ~prov_num)))
-se_m <- sqrt(diag(vcovCL(modelo_m_lm, cluster = ~prov_num)))
+# Errores clusterizados
+se_f_2 <- sqrt(diag(vcovCL(modelo_f2, cluster = ~prov_num)))
+se_m_2 <- sqrt(diag(vcovCL(modelo_m2, cluster = ~prov_num)))
 
-# Exportar con stargazer y capturar la salida
-tabla_cluster <- capture.output(
-  stargazer(modelo_f_lm, modelo_m_lm, se = list(se_f, se_m),
+
+# Tabla en Latex para Pdf
+tabla2 <- capture.output(
+  stargazer(modelo_f2, modelo_m2, se = list(se_f_2, se_m_2),
             type = "latex",
             dep.var.labels = c("Escolarización femenina", "Escolarización masculina"),
             column.labels = c("Mujeres", "Hombres"),
@@ -203,57 +211,42 @@ tabla_cluster <- capture.output(
 )
 
 # Quitar comentarios de stargazer (para un .tex limpio)
-tabla_cluster <- tabla_cluster[!grepl("^%", tabla_cluster)]
+tabla2 <- tabla2[!grepl("^%", tabla2)]
 
-# Guardar en archivo .tex
-writeLines(tabla_cluster, "Tablas/modelos_globo_genero.tex")
+# --- Guardar .tex limpio ---
+writeLines(tabla2, "Tablas/tabla1.tex")
 
 # Mostrar tabla en consola (opcional)
-cat(tabla_cluster, sep = "\n")
+cat(tabla2, sep = "\n")
+
 ```
 
 c.  Ecuación principal, para la submuestra a h unidades alrededor del corte, con controles.
 
 ```{r}
 # Filtrar submuestra
-turquia_sub <- subset(turquia, X >= -0.24 & X <= 0.24)
+turquia_sub <- subset(turquia, xi >= -0.24 & xi <= 0.24)
 
-# Modelos en la submuestra
-modelo_f_sub <- feols(
-  hischshr1520f ~ i98 + X + X_m +
-    vshr_islam1994 + partycount + lpop1994 +
-    ageshr19 + ageshr60 + sexr + shhs +
-    merkezi + merkezp + subbuyuk + buyuk +
-    factor(prov_num),
-  data = turquia_sub,
-  cluster = ~prov_num
-)
+# Mujeres
+modelo_f3 <- lm(hischshr1520f ~ di + xi + I(xi*di) +
+                   partycount + lpop1994 +
+                   ageshr19 + ageshr60 + sexr + shhs +
+                   merkezi + merkezp + subbuyuk + buyuk +
+                   factor(prov_num),
+                 data = turquia_sub)
 
-modelo_m_sub <- feols(
-  hischshr1520m ~ i98 + X + X_m +
-    vshr_islam1994 + partycount + lpop1994 +
-    ageshr19 + ageshr60 + sexr + shhs +
-    merkezi + merkezp + subbuyuk + buyuk +
-    factor(prov_num),
-  data = turquia_sub,
-  cluster = ~prov_num
-)
+# Hombres
+modelo_m3 <- lm(hischshr1520m ~ di + xi + I(xi*di) +
+                   partycount + lpop1994 +
+                   ageshr19 + ageshr60 + sexr + shhs +
+                   merkezi + merkezp + subbuyuk + buyuk +
+                   factor(prov_num),
+                 data = turquia_sub)
 
-# Exportar tabla a LaTeX con etable
-etable(
-  modelo_f_sub, modelo_m_sub,
-  se = "cluster",
-  cluster = ~prov_num,
-  tex = TRUE,
-  file = "Tablas/modelos_globo_genero_sub.tex",
-  title = "Impacto de Globo sobre escolarización por género (submuestra X ∈ [-0.24, 0.24])",
-  dict = c(hischshr1520f = "Escolarización femenina",
-           hischshr1520m = "Escolarización masculina",
-           i98 = "Cobertura Globo (i98)"),
-  keep = c("i98", "X", "X_m", "vshr_islam1994", "partycount", "lpop1994",
-           "ageshr19", "ageshr60", "sexr", "shhs", "merkezi", "merkezp",
-           "subbuyuk", "buyuk")  
-)
+# Errores clusterizados
+se_f3 <- sqrt(diag(vcovCL(modelo_f3, cluster = ~prov_num)))
+se_m3 <- sqrt(diag(vcovCL(modelo_m3, cluster = ~prov_num)))
+
 
 ```
 
@@ -261,47 +254,27 @@ d.  Ecuación principal, para la submuestra a h/2 unidades alrededor del corte, 
 
 ```{r}
 # Filtrar la submuestra dentro del rango -0.12 a 0.12
-turquia_sub_h2 <- subset(turquia, X >= -0.12 & X <= 0.12)
+turquia_sub_h2 <- subset(turquia, xi >= -0.12 & xi <= 0.12)
 
-# Modelo Mujeres
-modelo_f_h2 <- feols(
-  hischshr1520f ~ i98 + X + X_m +
-    vshr_islam1994 + partycount + lpop1994 +
-    ageshr19 + ageshr60 + sexr + shhs +
-    merkezi + merkezp + subbuyuk + buyuk +
-    factor(prov_num),
-  data = turquia_sub_h2,
-  cluster = ~prov_num
-)
+# Mujeres
+modelo_f4 <- lm(hischshr1520f ~ di + xi + I(xi*di) +
+                    partycount + lpop1994 +
+                    ageshr19 + ageshr60 + sexr + shhs +
+                    merkezi + merkezp + subbuyuk + buyuk +
+                    factor(prov_num),
+                  data = turquia_sub_h2)
 
-# Modelo Hombres
-modelo_m_h2 <- feols(
-  hischshr1520m ~ i98 + X + X_m +
-    vshr_islam1994 + partycount + lpop1994 +
-    ageshr19 + ageshr60 + sexr + shhs +
-    merkezi + merkezp + subbuyuk + buyuk +
-    factor(prov_num),
-  data = turquia_sub_h2,
-  cluster = ~prov_num
-)
+# Hombres
+modelo_m4 <- lm(hischshr1520m ~ di + xi + I(xi*di) +
+                    partycount + lpop1994 +
+                    ageshr19 + ageshr60 + sexr + shhs +
+                    merkezi + merkezp + subbuyuk + buyuk +
+                    factor(prov_num),
+                  data = turquia_sub_h2)
 
-# Exportar tabla a LaTeX
-etable(
-  modelo_f_h2, modelo_m_h2,
-  se = "cluster",
-  cluster = ~prov_num,
-  tex = TRUE,  # Genera LaTeX
-  file = "Tablas/modelos_globo_genero_sub_h2.tex",
-  title = "Impacto de Globo sobre escolarización por género (submuestra X ∈ [-0.12, 0.12])",
-  dict = c(
-    hischshr1520f = "Escolarización femenina",
-    hischshr1520m = "Escolarización masculina",
-    i98 = "Cobertura Globo (i98)"
-  ),
-  keep = c("i98", "X", "X_m", "vshr_islam1994", "partycount", "lpop1994",
-           "ageshr19", "ageshr60", "sexr", "shhs", "merkezi", "merkezp",
-           "subbuyuk", "buyuk")
-)
+# Errores clusterizados
+se_f4 <- sqrt(diag(vcovCL(modelo_f4, cluster = ~prov_num)))
+se_m4 <- sqrt(diag(vcovCL(modelo_m4, cluster = ~prov_num)))
 ```
 
 donde h=0.24 es el ancho de banda óptimo estimado por los autores. Para las especificaciones con controles, supongan que:
@@ -309,6 +282,25 @@ donde h=0.24 es el ancho de banda óptimo estimado por los autores. Para las esp
 $$f(x_i )= γx _i+δx_i×m_i$$
 
 Es decir, un polinomio de grado uno con pendiente distinta a cada lado del corte. Para las especificaciones sin controles, no incluyan ningún polinomio. Todas las especificaciones deben usar errores estándar clúster a nivel de provincia.
+
+```{r}
+library(stargazer)
+
+stargazer(modelo_f4, modelo_f4, modelo_f4, modelo_f4,
+          se = list(se_f_noctrl, se_f_ctrl, se_f_h, se_f_h2),
+          type = "text",
+          dep.var.labels = "Escolarización femenina",
+          column.labels = c("Sin controles", "Controles", "Controles h_hat", "Controles h_hat/2"),
+          covariate.labels = c("Alcalde islámico", "xi", "xi*di",
+                               "Número de partidos", "Población 1994", 
+                               "Edad 19", "Edad 60", "Sexo", "Shhs",
+                               "Merkezi", "Merkezp", "Subbuyuk", "Buyuk"),
+          digits = 3,
+          title = "Resultados por género: Mujeres")
+
+```
+
+
 
 ## 3) A partir de los resultados encontrados en el anterior punto, respondan:
 
