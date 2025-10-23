@@ -31,7 +31,7 @@ if (tinytex::is_tinytex()) {
   # Actualizar gestor de paquetes (self) y todos los paquetes
   tinytex::tlmgr_update(self = TRUE, all = TRUE)
 
-  message("✅ TinyTeX actualizado correctamente.")
+  message("TinyTeX actualizado correctamente.")
 } else {
   message("No se detecta TinyTeX. Si usas MikTeX o TeX Live, actualiza manualmente.")
 }
@@ -39,7 +39,6 @@ if (tinytex::is_tinytex()) {
 
 ```{r results='asis', echo=FALSE}
 # Cargar liberias y paquetes
-
 # Instalando pacman si se requiere
 if (!require("pacman")) install.packages("pacman")
 
@@ -80,7 +79,7 @@ $$y_i=α+βm_i+f(x_i )+ε_i$$
 
 donde y_i es la proporción de mujeres entre 15 y 20 años con educación secundaria completa en el año 2000, x_i es el margen de votos con el que ganó o perdió el candidato del partido islámico, f(⋅) es un polinomio de grado n de la variable x_i, m_i es una dicótoma que toma el valor de uno si x_i≥0, es decir, si el alcalde que llegó al poder en 1994 era del partido Islámico y ε_i es el término del error. La ecuación es estimada en un vecindario alrededor del corte, el cual, en este caso, es cero.
 
-## 0. Paso inicial
+### Preparación de los datos 
 
 Para esto se deberá eliminar aleatoriamente el 5% de las observaciones y usar la base restante. La semilla que deben usar para que sus resultados sean replicables es su código de estudiante.
 
@@ -92,14 +91,14 @@ data <- read_dta(path)
 # Fijar semilla con el cod de Laura
 set.seed(202421904)
 
-# Eliminar aletoriamente el 5% de las obs
+# Eliminar aletoriamente el 5% de las observaciones 
 n_eliminar <- round(0.05 * nrow(data))
 filas_eliminar <- sample(1:nrow(data), n_eliminar)
 turquia <- data[-filas_eliminar, ]
 ```
 
 ```{r}
-# Tratamiento de si se eligio un alcalde islamico
+# Tratamiento de si se eligió un alcalde islámico
 turquia <- turquia %>%
   rename(xi = ilmvsm1994) %>%       # renombrar la running variable
   mutate(
@@ -110,9 +109,11 @@ turquia <- turquia %>%
 
 ```
 
-## 1) ¿Por qué el autor usa la metodología de Regresión Discontinua para identificar los efectos de interés? ¿Cuál es la intuición detrás? ¿Cuál es el supuesto de identificación?
+### 1. Análisis introductorio
 
-Erik Meyersson (2014) en su paper Islamic Rule And The Empowerment of the Poor and Pious busca identificar un efecto causal de las elecciones de particuos islámicos de los municipios en Turquia sobre los resultados de empoderamiento de las mujeres medido como la proporción de jóvenes entre 15 y 20 años con educación secundaria completa. Para ello utiliza la metodología de Regresión Discontinua (RD) aprovechando que la asignación del tratamiento, es decir, si es un alcalde islámico no es aleatoria, dado que los municipios que eligen a este tipo de líderes pueden diferir en factores culturales, religiosos o socioeconómicos, una simple comparación entre municipios con y sin alcalde islámico generaría estimaciones sesgadas.La estrategia de RD permite aproximarse a un experimento natural. La intuición es que los municipios donde el candidato islámico ganó o perdió por un margen pequeño puede ser comparable en todas sus características observables y no observables, de modo que el hecho de haber obtenido la alcaldía o no puede considerarse casi aleatorio. 
+**¿Por qué el autor usa la metodología de Regresión Discontinua para identificar los efectos de interés? ¿Cuál es la intuición detrás? ¿Cuál es el supuesto de identificación?**
+
+Erik Meyersson (2014) en su paper Islamic Rule And The Empowerment of the Poor and Pious busca identificar un efecto causal de las elecciones de partidos islámicos de los municipios en Turquia sobre los resultados de empoderamiento de las mujeres medido como la proporción de jóvenes entre 15 y 20 años con educación secundaria completa. Para ello utiliza la metodología de Regresión Discontinua (RD) aprovechando que la asignación del tratamiento, es decir, si es un alcalde islámico no es aleatoria, dado que los municipios que eligen a este tipo de líderes pueden diferir en factores culturales, religiosos o socioeconómicos, una simple comparación entre municipios con y sin alcalde islámico generaría estimaciones sesgadas.La estrategia de RD permite aproximarse a un experimento natural. La intuición es que los municipios donde el candidato islámico ganó o perdió por un margen pequeño puede ser comparable en todas sus características observables y no observables, de modo que el hecho de haber obtenido la alcaldía o no puede considerarse casi aleatorio.
 
 El supuesto de identificación implica que, en ausencia del tratamiento, es decir, de haber tenido un alcalde del partido islámico, los resultados potenciales, como la proporción de mujeres jóvenes con educación secundaria completa serían continuos en torno al punto de corte del margen electoral. Esto implica que los municipios donde el candidato islámico ganó o perdió por muy poco son, en promedio, comparables en todas las características relevantes que podrían afectar el empoderamiento femenino.
 
@@ -154,7 +155,6 @@ tabla1 <- tabla1[!grepl("^%", tabla1)]
 # --- Guardar .tex limpio ---
 writeLines(tabla1, "Tablas/tabla1.tex")
 ```
-
 
 b.  Ecuación principal, para toda la muestra, con controles.
 
@@ -373,7 +373,6 @@ $$f(x_i )= γx _i+δx_i×m_i$$
 
 Es decir, un polinomio de grado uno con pendiente distinta a cada lado del corte. Para las especificaciones sin controles, no incluyan ningún polinomio. Todas las especificaciones deben usar errores estándar clúster a nivel de provincia.
 
-
 ## 3) A partir de los resultados encontrados en el anterior punto, respondan:
 
 a.  ¿Por qué cambian los coeficientes entre especificaciones?
@@ -381,7 +380,6 @@ a.  ¿Por qué cambian los coeficientes entre especificaciones?
 Los coeficientes cambian entre los modelos porque al incluir controles adicionales se corrige por diferencias observables entre municipios, reduciendo potenciales sesgos de omisión y permitiendo que la estimación del efecto de tener un alcalde islámico sea más precisa y cercana al efecto causal.Además, al reducir el ancho de banda y enfocarse en municipios más cercanos al umbral, las estimaciones se vuelven más comparables, aunque aumentan los errores estándar por el menor número de observaciones.
 
 El coeficiente para mujeres es negativo y significativo, mientras que con controles cambia a positivo y significativo, lo que sugiere que la estimación inicial estaba sesgada por diferencias preexistentes entre municipios. Para los hombres, el coeficiente con controles es cercano a cero y no significativo, pero aumenta sin controles, aunque sigue sin ser significativo.
-
 
 b.  ¿Cuál parece ser el impacto de la llegada al poder del Partido Islámico para las mujeres? ¿Parece ser este impacto robusto a las especificaciones?
 
@@ -445,6 +443,6 @@ stargazer(modelo_i89, modelo_lpop,
           out = "Tablas/tabla5.tex")
 ```
 
-c.  Dados sus resultados en los incisos a y b, ¿es plausible el supuesto de identificación? Expliquen por qué. 
+c.  Dados sus resultados en los incisos a y b, ¿es plausible el supuesto de identificación? Expliquen por qué.
 
-Los resultados obtenidos respaldan la validez del supuesto de identificación en el diseño de regresión discontinua. La evidencia sugiere que no existe manipulación de la variable running, ya que la distribución de la variable alrededor del umbral se mantiene continua y sin saltos evidentes, de acuerdo con el gráfico de densidad. Asi mismo, la elección de un alcalde del partido Islámico en 1984 y el logaritmo de la población en 1994 no son significativos. 
+Los resultados obtenidos respaldan la validez del supuesto de identificación en el diseño de regresión discontinua. La evidencia sugiere que no existe manipulación de la variable running, ya que la distribución de la variable alrededor del umbral se mantiene continua y sin saltos evidentes, de acuerdo con el gráfico de densidad. Asi mismo, la elección de un alcalde del partido Islámico en 1984 y el logaritmo de la población en 1994 no son significativos.
