@@ -69,6 +69,8 @@ pacman::p_load(
 )
 
 library(lfe)
+install.packages('rdrobust')
+library(rdrobust)
 ```
 
 ## Regresión Discontinua
@@ -77,9 +79,9 @@ En su artículo “Islamic Rule and the Empowerment of the Poor and Pious”, Me
 
 $$y_i=α+βm_i+f(x_i )+ε_i$$
 
-donde y_i es la proporción de mujeres entre 15 y 20 años con educación secundaria completa en el año 2000, x_i es el margen de votos con el que ganó o perdió el candidato del partido islámico, f(⋅) es un polinomio de grado n de la variable x_i, m_i es una dicótoma que toma el valor de uno si x_i≥0, es decir, si el alcalde que llegó al poder en 1994 era del partido Islámico y ε_i es el término del error. La ecuación es estimada en un vecindario alrededor del corte, el cual, en este caso, es cero.
+donde $Y_i$ es la proporción de mujeres entre 15 y 20 años con educación secundaria completa en el año 2000, $x_i$ es el margen de votos con el que ganó o perdió el candidato del partido islámico, $f(.)$ es un polinomio de grado n de la variable $x_i$, $m_i$ es una dicótoma que toma el valor de uno si $x_i > 0$, es decir, si el alcalde que llegó al poder en 1994 era del partido Islámico y $\epsilon_i$ es el término del error. La ecuación es estimada en un vecindario alrededor del corte, el cual, en este caso, es cero.
 
-### Preparación de los datos 
+### Preparación de los datos
 
 Para esto se deberá eliminar aleatoriamente el 5% de las observaciones y usar la base restante. La semilla que deben usar para que sus resultados sean replicables es su código de estudiante.
 
@@ -100,10 +102,10 @@ turquia <- data[-filas_eliminar, ]
 ```{r}
 # Tratamiento de si se eligió un alcalde islámico
 turquia <- turquia %>%
-  rename(xi = ilmvsm1994) %>%       # renombrar la running variable
+  rename(xi = ilmvsm1994) %>%       
   mutate(
     di = ifelse(xi >= 0, 1, 0),    # tratamiento: alcalde islámico
-    hischshr1520m = hischshr1520m / 100,  # pasar a proporción
+    hischshr1520m = hischshr1520m / 100,  
     hischshr1520f = hischshr1520f / 100
   )
 
@@ -117,9 +119,9 @@ Erik Meyersson (2014) en su paper Islamic Rule And The Empowerment of the Poor a
 
 El supuesto de identificación implica que, en ausencia del tratamiento, es decir, de haber tenido un alcalde del partido islámico, los resultados potenciales, como la proporción de mujeres jóvenes con educación secundaria completa serían continuos en torno al punto de corte del margen electoral. Esto implica que los municipios donde el candidato islámico ganó o perdió por muy poco son, en promedio, comparables en todas las características relevantes que podrían afectar el empoderamiento femenino.
 
-## 2) Para cada género, presenten en una tabla los resultados de estimar las siguientes especificaciones
+**Para cada género, presenten en una tabla los resultados de estimar las siguientes especificaciones**
 
-a.  Ecuación principal, para toda la muestra, sin incluir controles.
+a.  Ecuación principal, para toda la muestra, sin incluir controles
 
 ```{r results='asis'}
 
@@ -135,7 +137,7 @@ se_m <- sqrt(diag(vcovCL(modelo_m, cluster = ~ prov_num)))
 tabla1 <- capture.output(
   stargazer(
     modelo_f, modelo_m,
-    type = "latex",
+    type = "text",
     se = list(se_f, se_m),
     title = "Regresión Discontinua: efecto de alcaldes islámicos sobre educación secundaria",
     column.labels = c("Mujeres", "Hombres"),
@@ -154,6 +156,34 @@ tabla1 <- tabla1[!grepl("^%", tabla1)]
 
 # --- Guardar .tex limpio ---
 writeLines(tabla1, "Tablas/tabla1.tex")
+```
+
+```{r}
+## Pruebita de metodos 
+rd_f <-  rdrobust(y = turquia$hischshr1520f,
+          x = turquia$xi,
+          cluster = turquia$prov_num,
+          c=0)
+
+rd_m <- rdrobust(y = turquia$hischshr1520m,
+          x = turquia$xi,
+          cluster = turquia$prov_num,
+          c=0)
+
+grafico_m <- rdplot(y = turquia$hischshr1520m, x = turquia$xi,c=0)
+grafico_f <- rdplot(y = turquia$hischshr1520f, x = turquia$xi,c=0)
+
+# Crear tabla comparativa
+tabla_resultados <- data.frame(
+  Grupo = c("Mujeres", "Hombres"),
+  Efecto_Estimado = round(c(rd_f$Estimate[1], rd_m$Estimate[1]), 4),
+  Error_Estandar = round(c(rd_f$se[1], rd_m$se[1]), 4),
+  Valor_p = round(c(rd_f$pv[1], rd_m$pv[1]), 4)
+)
+
+# Mostrar tabla
+tabla_resultados
+
 ```
 
 b.  Ecuación principal, para toda la muestra, con controles.
