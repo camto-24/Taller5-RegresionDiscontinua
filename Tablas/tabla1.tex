@@ -1,34 +1,40 @@
 
 \begin{table}[ht!] \centering 
-  \caption{Regresión Discontinua: efecto de alcaldes islámicos sobre educación secundaria} 
+  \caption{Efecto de alcaldes islámicos sobre educación secundaria} 
   \label{tab:rd_mujeres_hombres} 
 \begin{tabular}{@{\extracolsep{5pt}}lcc} 
 \\[-1.8ex]\hline 
 \hline \\[-1.8ex] 
  & \multicolumn{2}{c}{\textit{Dependent variable:}} \\ 
 \cline{2-3} 
-\\[-1.8ex] & Proporción con secundaria completa (15–20 años) & hischshr1520m \\ 
  & Mujeres & Hombres \\ 
 \\[-1.8ex] & (1) & (2)\\ 
 \hline \\[-1.8ex] 
- Alcalde islámico (Dᵢ) & $-$0.0002$^{*}$ & 0.0002 \\ 
-  & (0.0001) & (0.006) \\ 
-  & & \\ 
- Running Variable(Xᵢ) & $-$0.0003 & 0.007 \\ 
-  & (0.0002) & (0.014) \\ 
-  & & \\ 
- Constant & 0.002$^{***}$ & 0.195$^{***}$ \\ 
-  & (0.0001) & (0.004) \\ 
-  & & \\ 
-\hline \\[-1.8ex] 
+ Alcalde islámico (Dᵢ) & $-$0.00001 (0.0001) & 0.008 (0.006) \\ 
+  xi & $-$0.0002 (0.0002) & 0.011 \\ 
+  di:xi & $-$0.002$^{***}$ (0.001) & $-$0.092 \\ 
+  Constant & 0.002$^{***}$ (0.0001) & 0.196$^{***}$ (0.005) \\ 
+ \hline \\[-1.8ex] 
 Observations & 2,498 & 2,498 \\ 
-R$^{2}$ & 0.010 & 0.0005 \\ 
-Adjusted R$^{2}$ & 0.010 & $-$0.0003 \\ 
-Residual Std. Error (df = 2495) & 0.001 & 0.077 \\ 
-F Statistic (df = 2; 2495) & 13.138$^{***}$ & 0.602 \\ 
+R$^{2}$ & 0.014 & 0.002 \\ 
+Adjusted R$^{2}$ & 0.013 & 0.001 \\ 
+Residual Std. Error (df = 2494) & 0.001 & 0.077 \\ 
+F Statistic (df = 3; 2494) & 12.095$^{***}$ & 1.661 \\ 
 \hline 
 \hline \\[-1.8ex] 
 \textit{Note:}  & \multicolumn{2}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
  & \multicolumn{2}{r}{Errores estándar agrupados por provincia.} \\ 
+\end{tabular} 
+\end{table} 
+
+\begin{table}[ht!] \centering 
+  \caption{Efecto de alcaldes islámicos sobre educación secundaria} 
+  \label{tab:rd_mujeres_hombres} 
+\begin{tabular}{@{\extracolsep{5pt}} c} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+TRUE \\ 
+\hline \\[-1.8ex] 
+\multicolumn{1}{l}{Errores estándar agrupados por provincia.} \\ 
 \end{tabular} 
 \end{table} 

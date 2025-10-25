@@ -1,0 +1,798 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[top=1.5cm, bottom=1.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{adjustbox}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Taller 5 - Regresión Discontinua},
+  pdfauthor={Maria Camila Caraballo, Laura Sarif Rivera},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Taller 5 - Regresión Discontinua}
+\author{Maria Camila Caraballo, Laura Sarif Rivera}
+\date{}
+
+\begin{document}
+\maketitle
+
+\subsection{Taller Regresión
+Discontinua}\label{taller-regresiuxf3n-discontinua}
+
+En su artículo ``Islamic Rule and the Empowerment of the Poor and
+Pious'', Meyersson (2014) investiga si la llegada al poder por parte del
+Partido Islámico tiene algún efecto sobre el empoderamiento de las
+mujeres en Turquía. Para esto, implementa la metodología de Regresión
+Discontinua, explotando información de: (1) elecciones locales de
+alcalde en Turquía del año 1994 y (2) mujeres con educación secundaria
+completa en el año 2000. Concretamente, estima por MCO la siguiente
+ecuación
+
+\[y_i=α+βm_i+f(x_i )+ε_i\]
+
+donde \(Y_i\) es la proporción de mujeres entre 15 y 20 años con
+educación secundaria completa en el año 2000, \(x_i\) es el margen de
+votos con el que ganó o perdió el candidato del partido islámico,
+\(f(.)\) es un polinomio de grado n de la variable \(x_i\), \(m_i\) es
+una dicótoma que toma el valor de uno si \(x_i > 0\), es decir, si el
+alcalde que llegó al poder en 1994 era del partido Islámico y
+\(\epsilon_i\) es el término del error. La ecuación es estimada en un
+vecindario alrededor del corte, el cual, en este caso, es cero.
+
+\subsubsection{Preparación de los
+datos}\label{preparaciuxf3n-de-los-datos}
+
+Para esto se deberá eliminar aleatoriamente el 5\% de las observaciones
+y usar la base restante. La semilla que deben usar para que sus
+resultados sean replicables es su código de estudiante.
+
+\subsubsection{1. Análisis
+introductorio}\label{anuxe1lisis-introductorio}
+
+\textbf{¿Por qué el autor usa la metodología de Regresión Discontinua
+para identificar los efectos de interés? ¿Cuál es la intuición detrás?
+¿Cuál es el supuesto de identificación?}
+
+Erik Meyersson (2014) en su trabajo \emph{Islamic Rule and the
+Empowerment of the Poor and Pious} busca identificar el efecto causal de
+que un municipio sea gobernado por un alcalde islámico sobre el
+empoderamiento de las mujeres, medido a través de la proporción de
+jóvenes entre 15 y 20 años con educación secundaria completa. El desafío
+metodológico radica en que la elección de un partido islámico no es
+aleatoria, ya que los municipios que votan por estos partidos pueden
+diferir en características culturales, religiosas o socioeconómicas que
+también influyen en los resultados educativos. Si se compararan
+directamente municipios con y sin alcalde islámico, las estimaciones
+resultarían sesgadas por esas diferencias estructurales.
+
+La metodología de regresión discontinua ofrece una solución porque
+permite aislar la variación que puede considerarse casi aleatoria en
+torno al umbral de victoria electoral. Cuando un candidato gana o pierde
+por un margen muy pequeño, el resultado depende más del azar o de
+factores impredecibles que de diferencias estructurales entre los
+municipios. En ese punto de corte, ganar o perder una elección es casi
+como producto del azar, lo que genera un entorno cuasi experimental en
+el que las unidades a ambos lados del umbral son muy parecidas.
+Conceptualmente, los municipios que se ubican justo por encima o por
+debajo del margen de victoria del partido islámico tienen el mismo
+perfil social, económico y cultural, por lo que cualquier salto en los
+resultados educativos observado exactamente en el punto de corte puede
+interpretarse como consecuencia directa de haber tenido un alcalde
+islámico.
+
+El supuesto fundamental de identificación es el de continuidad, consiste
+en que en ausencia del tratamiento el resultado esperado variaría de
+manera continua con el margen de victoria electoral. Esto implica que no
+existen saltos sistemáticos en el resultado alrededor del punto de corte
+que no estén causados por la victoria del partido islamista. Es decir,
+el supuesto sostiene que cerca del umbral los municipios son similares
+en todo aspecto salvo en la variable de tratamiento, lo que permite
+interpretar la discontinuidad observada en los resultados como un efecto
+causal del triunfo electoral del partido.
+
+\newpage
+
+\subsubsection{2. Para cada género, presenten en una tabla los
+resultados de estimar las siguientes
+especificacione}\label{para-cada-guxe9nero-presenten-en-una-tabla-los-resultados-de-estimar-las-siguientes-especificacione}
+
+\textbf{a. Ecuación principal, para toda la muestra, sin incluir
+controles}
+
+{[}1{]} ``\,''\\
+{[}2{]} ``\textbackslash begin\{table\}{[}ht!{]}
+\textbackslash centering''\\
+{[}3{]} '' \textbackslash caption\{Efecto de alcaldes islámicos sobre
+educación secundaria\} ''\\
+{[}4{]} '' \textbackslash label\{tab:rd\_mujeres\_hombres\} ''\\
+{[}5{]}
+``\textbackslash begin\{tabular\}\{@\textbackslash\textbackslash extracolsep\{5pt\}lcc\}''\\
+{[}6{]}
+``\textbackslash\textbackslash{[}-1.8ex{]}\textbackslash hline''\\
+{[}7{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}8{]} '' \&
+\textbackslash multicolumn\{2\}\{c\}\{\textbackslash textit\{Dependent
+variable:\}\} \textbackslash\textbackslash{} ''\\
+{[}9{]} ``\textbackslash cline\{2-3\}''\\
+{[}10{]} '' \& Mujeres \& Hombres \textbackslash\textbackslash{} ''\\
+{[}11{]} ``\textbackslash\textbackslash{[}-1.8ex{]} \& (1) \&
+(2)\textbackslash\textbackslash{}''\\
+{[}12{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}13{]} '' Alcalde islámico (Dᵢ) \& \$-\$0.00001 (0.0001) \& 0.008
+(0.007) \textbackslash\textbackslash{} ''\\
+{[}14{]} '' xi \& \$-\$0.0002 (0.0002) \& 0.011 (0.014)
+\textbackslash\textbackslash{} ''\\
+{[}15{]} '' di:xi \& \$-\(0.002\)\^{}\{*\textbf{\}\$ (0.001) \&
+\$-\(0.092\)\^{}\{}\}\$ (0.041) \textbackslash\textbackslash{} ''\\
+{[}16{]} '' Constant \& 0.002\(^{***}\) (0.0001) \& 0.196\(^{***}\)
+(0.005) \textbackslash\textbackslash{} ''\\
+{[}17{]} '' \textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]} ''\\
+{[}18{]} ``Observations \& 2,498 \& 2,498
+\textbackslash\textbackslash{}''\\
+{[}19{]} ``R\(^{2}\) \& 0.014 \& 0.002
+\textbackslash\textbackslash{}''\\
+{[}20{]} ``Adjusted R\(^{2}\) \& 0.013 \& 0.001
+\textbackslash\textbackslash{}''\\
+{[}21{]} ``Residual Std. Error (df = 2494) \& 0.001 \& 0.077
+\textbackslash\textbackslash{}''\\
+{[}22{]} ``F Statistic (df = 3; 2494) \& 12.095\(^{***}\) \& 1.661
+\textbackslash\textbackslash{}''\\
+{[}23{]} ``\textbackslash hline''\\
+{[}24{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}25{]} ``\textbackslash textit\{Note:\} \&
+\textbackslash multicolumn\{2\}\{r\}\{\(^{*}\)p\$\textless\$0.1;
+\(^{**}\)p\$\textless\$0.05; \(^{***}\)p\$\textless\$0.01\}
+\textbackslash\textbackslash{}'' {[}26{]} '' \&
+\textbackslash multicolumn\{2\}\{r\}\{Errores estándar agrupados por
+provincia.\} \textbackslash\textbackslash{} ''\\
+{[}27{]} ``\textbackslash end\{tabular\}''\\
+{[}28{]} ``\textbackslash end\{table\}''\\
+{[}29{]} ``\,''\\
+{[}30{]} ``\textbackslash begin\{table\}{[}ht!{]}
+\textbackslash centering''\\
+{[}31{]} '' \textbackslash caption\{Efecto de alcaldes islámicos sobre
+educación secundaria\} ''\\
+{[}32{]} '' \textbackslash label\{tab:rd\_mujeres\_hombres\} ''\\
+{[}33{]}
+``\textbackslash begin\{tabular\}\{@\textbackslash\textbackslash extracolsep\{5pt\}
+c\}''\\
+{[}34{]}
+``\textbackslash\textbackslash{[}-1.8ex{]}\textbackslash hline''\\
+{[}35{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}36{]} ``TRUE \textbackslash\textbackslash{}''\\
+{[}37{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}38{]} ``\textbackslash multicolumn\{1\}\{l\}\{Errores estándar
+agrupados por provincia.\} \textbackslash\textbackslash{}''\\
+{[}39{]} ``\textbackslash end\{tabular\}''\\
+{[}40{]} ``\textbackslash end\{table\}''
+
+\newpage
+
+\textbf{b. Ecuación principal, para toda la muestra, con controles.}
+
+{[}1{]} ``\,''\\
+{[}2{]} ``\textbackslash begin\{table\}{[}ht!{]}
+\textbackslash centering''\\
+{[}3{]} '' \textbackslash caption\{Efecto de alcaldes islámicos sobre
+educación secundaria\} ''\\
+{[}4{]} '' \textbackslash label\{tab:rd\_controles\_mujeres\_hombres\}
+''\\
+{[}5{]}
+``\textbackslash begin\{tabular\}\{@\textbackslash\textbackslash extracolsep\{5pt\}lcc\}''\\
+{[}6{]}
+``\textbackslash\textbackslash{[}-1.8ex{]}\textbackslash hline''\\
+{[}7{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}8{]} '' \&
+\textbackslash multicolumn\{2\}\{c\}\{\textbackslash textit\{Dependent
+variable:\}\} \textbackslash\textbackslash{} ''\\
+{[}9{]} ``\textbackslash cline\{2-3\}''\\
+{[}10{]} '' \& Mujeres \& Hombres \textbackslash\textbackslash{} ''\\
+{[}11{]} ``\textbackslash\textbackslash{[}-1.8ex{]} \& (1) \&
+(2)\textbackslash\textbackslash{}''\\
+{[}12{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}13{]} '' Alcalde islámico (Dᵢ) \& 0.0001\(^{**}\) (0.0001) \& 0.005
+(0.006) \textbackslash\textbackslash{} ''\\
+{[}14{]} '' Número de partidos (1994) \&
+\$-\(0.0004\)\^{}\{\textbf{\emph{\}\$ (0.0001) \& 0.015 (0.014)
+\textbackslash\textbackslash{} ''\\
+{[}15{]} '' Población (log, 1994) \& \$-\(0.001\)\^{}\{}}\}\$ (0.0004)
+\& \$-\(0.069\)\^{}\{\textbf{\}\$ (0.033) \textbackslash\textbackslash{}
+''\\
+{[}16{]} '' Proporción 0--19 años \& \$-\(0.00003\)\^{}\{}\}\$ (0.00002)
+\& \$-\(0.010\)\^{}\{\textbf{\emph{\}\$ (0.002)
+\textbackslash\textbackslash{} ''\\
+{[}17{]} '' Proporción 60+ años \& 0.0001\(^{**}\) (0.00003) \& 0.005
+(0.003) \textbackslash\textbackslash{} ''\\
+{[}18{]} '' Razón de sexo \& \$-\(0.0001\)\^{}\{}}\}\$ (0.00001) \&
+\$-\(0.005\)\^{}\{\textbf{\emph{\}\$ (0.001)
+\textbackslash\textbackslash{} ''\\
+{[}19{]} '' Tamaño promedio del hogar \& \$-\(0.0001\)\^{}\{}}\}\$
+(0.00001) \& \$-\(0.005\)\^{}\{\textbf{\emph{\}\$ (0.001)
+\textbackslash\textbackslash{} ''\\
+{[}20{]} '' Categoría: Merkezi \& \$-\(0.00000\)\^{}\{}}\}\$ (0.00000)
+\& \$-\(0.0004\)\^{}\{***\}\$ (0.0001) \textbackslash\textbackslash{}
+''\\
+{[}21{]} '' Categoría: Merkezp \& 0.00005\(^{**}\) (0.00002) \&
+0.006\(^{***}\) (0.002) \textbackslash\textbackslash{} ''\\
+{[}22{]} '' Categoría: Sub-Büyük \& 0.001\(^{***}\) (0.0001) \&
+0.047\(^{***}\) (0.005) \textbackslash\textbackslash{} ''\\
+{[}23{]} '' Categoría: Büyük \& 0.0005\(^{***}\) (0.0001) \&
+0.052\(^{***}\) (0.010) \textbackslash\textbackslash{} ''\\
+{[}24{]} '' subbuyuk \& 0.0003 (0.0002) \& 0.037\(^{***}\) (0.014)
+\textbackslash\textbackslash{} ''\\
+{[}25{]} '' buyuk \& 0.0004\(^{*}\) (0.0002) \& 0.079\(^{***}\) (0.020)
+\textbackslash\textbackslash{} ''\\
+{[}26{]} '' Constant \& 0.005\(^{***}\) (0.0004) \& 0.472\(^{***}\)
+(0.039) \textbackslash\textbackslash{} ''\\
+{[}27{]} '' \textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]} ''\\
+{[}28{]} ``Observations \& 2,498 \& 2,498
+\textbackslash\textbackslash{}''\\
+{[}29{]} ``R\(^{2}\) \& 0.438 \& 0.192
+\textbackslash\textbackslash{}''\\
+{[}30{]} ``Adjusted R\(^{2}\) \& 0.436 \& 0.187
+\textbackslash\textbackslash{}''\\
+{[}31{]} ``Residual Std. Error (df = 2484) \& 0.001 \& 0.070
+\textbackslash\textbackslash{}''\\
+{[}32{]} ``F Statistic (df = 13; 2484) \& 149.220\(^{***}\) \&
+45.323\(^{***}\) \textbackslash\textbackslash{}''\\
+{[}33{]} ``\textbackslash hline''\\
+{[}34{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}35{]} ``\textbackslash textit\{Note:\} \&
+\textbackslash multicolumn\{2\}\{r\}\{\(^{*}\)p\$\textless\$0.1;
+\(^{**}\)p\$\textless\$0.05; \(^{***}\)p\$\textless\$0.01\}
+\textbackslash\textbackslash{}''\\
+{[}36{]} '' \& \textbackslash multicolumn\{2\}\{r\}\{Errores estándar
+agrupados por provincia. Todos los modelos incluyen efectos fijos por
+provincia.\} \textbackslash\textbackslash{} '' {[}37{]}
+``\textbackslash end\{tabular\}''\\
+{[}38{]} ``\textbackslash end\{table\}''\\
+{[}39{]} ``\,''\\
+{[}40{]} ``\textbackslash begin\{table\}{[}ht!{]}
+\textbackslash centering''\\
+{[}41{]} '' \textbackslash caption\{Efecto de alcaldes islámicos sobre
+educación secundaria\} ''\\
+{[}42{]} '' \textbackslash label\{tab:rd\_controles\_mujeres\_hombres\}
+''\\
+{[}43{]}
+``\textbackslash begin\{tabular\}\{@\textbackslash\textbackslash extracolsep\{5pt\}
+c\}''\\
+{[}44{]}
+``\textbackslash\textbackslash{[}-1.8ex{]}\textbackslash hline''\\
+{[}45{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}46{]} ``TRUE \textbackslash\textbackslash{}''\\
+{[}47{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}48{]} ``\textbackslash multicolumn\{1\}\{l\}\{Errores estándar
+agrupados por provincia. Todos los modelos incluyen efectos fijos por
+provincia.\} \textbackslash\textbackslash{}''\\
+{[}49{]} ``\textbackslash end\{tabular\}''\\
+{[}50{]} ``\textbackslash end\{table\}''
+
+\begin{table}[ht!] \centering 
+  \caption{Efecto de alcaldes islámicos sobre educación secundaria} 
+  \label{tab:rd_controles_mujeres_hombres} 
+\begin{tabular}{@{\extracolsep{5pt}}lcc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & \multicolumn{2}{c}{\textit{Dependent variable:}} \\ 
+\cline{2-3} 
+ & Mujeres & Hombres \\ 
+\\[-1.8ex] & (1) & (2)\\ 
+\hline \\[-1.8ex] 
+ Alcalde islámico (Dᵢ) & 0.0001$^{**}$ (0.0001) & 0.005 (0.006) \\ 
+  Número de partidos (1994) & $-$0.0004$^{***}$ (0.0001) & 0.015 (0.014) \\ 
+  Población (log, 1994) & $-$0.001$^{***}$ (0.0004) & $-$0.069$^{**}$ (0.033) \\ 
+  Proporción 0–19 años & $-$0.00003$^{**}$ (0.00002) & $-$0.010$^{***}$ (0.002) \\ 
+  Proporción 60+ años & 0.0001$^{**}$ (0.00003) & 0.005 (0.003) \\ 
+  Razón de sexo & $-$0.0001$^{***}$ (0.00001) & $-$0.005$^{***}$ (0.001) \\ 
+  Tamaño promedio del hogar & $-$0.0001$^{***}$ (0.00001) & $-$0.005$^{***}$ (0.001) \\ 
+  Categoría: Merkezi & $-$0.00000$^{***}$ (0.00000) & $-$0.0004$^{***}$ (0.0001) \\ 
+  Categoría: Merkezp & 0.00005$^{**}$ (0.00002) & 0.006$^{***}$ (0.002) \\ 
+  Categoría: Sub-Büyük & 0.001$^{***}$ (0.0001) & 0.047$^{***}$ (0.005) \\ 
+  Categoría: Büyük & 0.0005$^{***}$ (0.0001) & 0.052$^{***}$ (0.010) \\ 
+  subbuyuk & 0.0003 (0.0002) & 0.037$^{***}$ (0.014) \\ 
+  buyuk & 0.0004$^{*}$ (0.0002) & 0.079$^{***}$ (0.020) \\ 
+  Constant & 0.005$^{***}$ (0.0004) & 0.472$^{***}$ (0.039) \\ 
+ \hline \\[-1.8ex] 
+Observations & 2,498 & 2,498 \\ 
+R$^{2}$ & 0.438 & 0.192 \\ 
+Adjusted R$^{2}$ & 0.436 & 0.187 \\ 
+Residual Std. Error (df = 2484) & 0.001 & 0.070 \\ 
+F Statistic (df = 13; 2484) & 149.220$^{***}$ & 45.323$^{***}$ \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{2}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+ & \multicolumn{2}{r}{Errores estándar agrupados por provincia. Todos los modelos incluyen efectos fijos por provincia.} \\ 
+\end{tabular} 
+\end{table}
+
+\begin{table}[ht!] \centering 
+  \caption{Efecto de alcaldes islámicos sobre educación secundaria} 
+  \label{tab:rd_controles_mujeres_hombres} 
+\begin{tabular}{@{\extracolsep{5pt}} c} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+TRUE \\ 
+\hline \\[-1.8ex] 
+\multicolumn{1}{l}{Errores estándar agrupados por provincia. Todos los modelos incluyen efectos fijos por provincia.} \\ 
+\end{tabular} 
+\end{table}
+
+\newpage
+
+Donde h=0.24 es el ancho de banda óptimo estimado por los autores. Para
+las especificaciones con controles, supongan que:
+
+\[f(x_i )= γx _i+δx_i×m_i\]
+
+Es decir, un polinomio de grado uno con pendiente distinta a cada lado
+del corte. Para las especificaciones sin controles, no incluyan ningún
+polinomio. Todas las especificaciones deben usar errores estándar
+clúster a nivel de provincia.
+
+\textbf{c.~Ecuación principal, para la submuestra a h unidades alrededor
+del corte, con controles.}
+
+{[}1{]} ``\,''\\
+{[}2{]} ``\textbackslash begin\{table\}{[}ht!{]}
+\textbackslash centering''\\
+{[}3{]} '' \textbackslash caption\{Regresión Discontinua con controles
+(submuestra ĥ alrededor del corte)\} ''\\
+{[}4{]} ''
+\textbackslash label\{tab:rd\_submuestra\_h\_mujeres\_hombres\} ''\\
+{[}5{]}
+``\textbackslash begin\{tabular\}\{@\textbackslash\textbackslash extracolsep\{5pt\}lcc\}''\\
+{[}6{]}
+``\textbackslash\textbackslash{[}-1.8ex{]}\textbackslash hline''\\
+{[}7{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}8{]} '' \&
+\textbackslash multicolumn\{2\}\{c\}\{\textbackslash textit\{Dependent
+variable:\}\} \textbackslash\textbackslash{} ''\\
+{[}9{]} ``\textbackslash cline\{2-3\}''\\
+{[}10{]} '' \& Mujeres \& Hombres \textbackslash\textbackslash{} ''\\
+{[}11{]} ``\textbackslash\textbackslash{[}-1.8ex{]} \& (1) \&
+(2)\textbackslash\textbackslash{}''\\
+{[}12{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}13{]} '' Alcalde islámico (Dᵢ) \& 0.0003\(^{***}\) (0.0001) \& 0.010
+(0.008) \textbackslash\textbackslash{} ''\\
+{[}14{]} '' Número de partidos (1994) \& \$-\(0.001\)\^{}\{\textbf{\}\$
+(0.0004) \& 0.004 (0.040) \textbackslash\textbackslash{} ''\\
+{[}15{]} '' Población (log, 1994) \& \$-\(0.002\)\^{}\{}\}\$ (0.001) \&
+\$-\$0.084 (0.067) \textbackslash\textbackslash{} ''\\
+{[}16{]} '' Proporción 0--19 años \& \$-\$0.00002 (0.00002) \&
+\$-\(0.009\)\^{}\{\textbf{\emph{\}\$ (0.002)
+\textbackslash\textbackslash{} ''\\
+{[}17{]} '' Proporción 60+ años \& 0.0001\(^{**}\) (0.00004) \& 0.004
+(0.004) \textbackslash\textbackslash{} ''\\
+{[}18{]} '' Razón de sexo \& \$-\(0.0001\)\^{}\{}}\}\$ (0.00001) \&
+\$-\(0.005\)\^{}\{\textbf{\emph{\}\$ (0.0005)
+\textbackslash\textbackslash{} ''\\
+{[}19{]} '' Tamaño promedio del hogar \& \$-\(0.00004\)\^{}\{}}\}\$
+(0.00002) \& \$-\(0.005\)\^{}\{\textbf{\emph{\}\$ (0.001)
+\textbackslash\textbackslash{} ''\\
+{[}20{]} '' Categoría: Merkezi \& 0.00000 (0.00000) \&
+\$-\(0.0001 (0.0003) \\\\ "
+[21] "  Categoría: Merkezp & 0.00004\)\^{}\{}}\}\$ (0.00001) \&
+0.005\(^{***}\) (0.001) \textbackslash\textbackslash{} ''\\
+{[}22{]} '' Categoría: Sub-Büyük \& 0.001\(^{***}\) (0.0001) \&
+0.052\(^{***}\) (0.006) \textbackslash\textbackslash{} ''\\
+{[}23{]} '' Categoría: Büyük \& 0.001\(^{***}\) (0.0001) \&
+0.047\(^{***}\) (0.011) \textbackslash\textbackslash{} ''\\
+{[}24{]} '' subbuyuk \& 0.0002 (0.0002) \& 0.027 (0.018)
+\textbackslash\textbackslash{} ''\\
+{[}25{]} '' buyuk \& 0.0004\(^{*}\) (0.0002) \& 0.071\(^{***}\) (0.022)
+\textbackslash\textbackslash{} ''\\
+{[}26{]} '' Constant \& 0.004\(^{***}\) (0.001) \& 0.445\(^{***}\)
+(0.065) \textbackslash\textbackslash{} ''\\
+{[}27{]} '' \textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]} ''\\
+{[}28{]} ``Observations \& 968 \& 968 \textbackslash\textbackslash{}''\\
+{[}29{]} ``R\(^{2}\) \& 0.548 \& 0.268
+\textbackslash\textbackslash{}''\\
+{[}30{]} ``Adjusted R\(^{2}\) \& 0.542 \& 0.258
+\textbackslash\textbackslash{}''\\
+{[}31{]} ``Residual Std. Error (df = 954) \& 0.001 \& 0.065
+\textbackslash\textbackslash{}''\\
+{[}32{]} ``F Statistic (df = 13; 954) \& 88.888\(^{***}\) \&
+26.828\(^{***}\) \textbackslash\textbackslash{}''\\
+{[}33{]} ``\textbackslash hline''\\
+{[}34{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}35{]} ``\textbackslash textit\{Note:\} \&
+\textbackslash multicolumn\{2\}\{r\}\{\(^{*}\)p\$\textless\$0.1;
+\(^{**}\)p\$\textless\$0.05; \(^{***}\)p\$\textless\$0.01\}
+\textbackslash\textbackslash{}''\\
+{[}36{]} '' \& \textbackslash multicolumn\{2\}\{r\}\{Errores estándar
+agrupados por provincia. Submuestra: ±ĥ unidades alrededor del punto de
+corte. Incluye controles y efectos fijos por provincia.\}
+\textbackslash\textbackslash{} '' {[}37{]}
+``\textbackslash end\{tabular\}''\\
+{[}38{]} ``\textbackslash end\{table\}''\\
+{[}39{]} ``\,''\\
+{[}40{]} ``\textbackslash begin\{table\}{[}ht!{]}
+\textbackslash centering''\\
+{[}41{]} '' \textbackslash caption\{Regresión Discontinua con controles
+(submuestra ĥ alrededor del corte)\} ''\\
+{[}42{]} ''
+\textbackslash label\{tab:rd\_submuestra\_h\_mujeres\_hombres\} ''\\
+{[}43{]}
+``\textbackslash begin\{tabular\}\{@\textbackslash\textbackslash extracolsep\{5pt\}
+c\}''\\
+{[}44{]}
+``\textbackslash\textbackslash{[}-1.8ex{]}\textbackslash hline''\\
+{[}45{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}46{]} ``TRUE \textbackslash\textbackslash{}''\\
+{[}47{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}48{]} ``\textbackslash multicolumn\{1\}\{l\}\{Errores estándar
+agrupados por provincia. Submuestra: ±ĥ unidades alrededor del punto de
+corte. Incluye controles y efectos fijos por provincia.\}
+\textbackslash\textbackslash{}''\\
+{[}49{]} ``\textbackslash end\{tabular\}''\\
+{[}50{]} ``\textbackslash end\{table\}''
+
+\begin{table}[ht!] \centering 
+  \caption{Regresión Discontinua con controles (submuestra ĥ alrededor del corte)} 
+  \label{tab:rd_submuestra_h_mujeres_hombres} 
+\begin{tabular}{@{\extracolsep{5pt}}lcc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & \multicolumn{2}{c}{\textit{Dependent variable:}} \\ 
+\cline{2-3} 
+ & Mujeres & Hombres \\ 
+\\[-1.8ex] & (1) & (2)\\ 
+\hline \\[-1.8ex] 
+ Alcalde islámico (Dᵢ) & 0.0003$^{***}$ (0.0001) & 0.010 (0.008) \\ 
+  Número de partidos (1994) & $-$0.001$^{**}$ (0.0004) & 0.004 (0.040) \\ 
+  Población (log, 1994) & $-$0.002$^{**}$ (0.001) & $-$0.084 (0.067) \\ 
+  Proporción 0–19 años & $-$0.00002 (0.00002) & $-$0.009$^{***}$ (0.002) \\ 
+  Proporción 60+ años & 0.0001$^{**}$ (0.00004) & 0.004 (0.004) \\ 
+  Razón de sexo & $-$0.0001$^{***}$ (0.00001) & $-$0.005$^{***}$ (0.0005) \\ 
+  Tamaño promedio del hogar & $-$0.00004$^{***}$ (0.00002) & $-$0.005$^{***}$ (0.001) \\ 
+  Categoría: Merkezi & 0.00000 (0.00000) & $-$0.0001 (0.0003) \\ 
+  Categoría: Merkezp & 0.00004$^{***}$ (0.00001) & 0.005$^{***}$ (0.001) \\ 
+  Categoría: Sub-Büyük & 0.001$^{***}$ (0.0001) & 0.052$^{***}$ (0.006) \\ 
+  Categoría: Büyük & 0.001$^{***}$ (0.0001) & 0.047$^{***}$ (0.011) \\ 
+  subbuyuk & 0.0002 (0.0002) & 0.027 (0.018) \\ 
+  buyuk & 0.0004$^{*}$ (0.0002) & 0.071$^{***}$ (0.022) \\ 
+  Constant & 0.004$^{***}$ (0.001) & 0.445$^{***}$ (0.065) \\ 
+ \hline \\[-1.8ex] 
+Observations & 968 & 968 \\ 
+R$^{2}$ & 0.548 & 0.268 \\ 
+Adjusted R$^{2}$ & 0.542 & 0.258 \\ 
+Residual Std. Error (df = 954) & 0.001 & 0.065 \\ 
+F Statistic (df = 13; 954) & 88.888$^{***}$ & 26.828$^{***}$ \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{2}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+ & \multicolumn{2}{r}{Errores estándar agrupados por provincia. Submuestra: ±ĥ unidades alrededor del punto de corte. Incluye controles y efectos fijos por provincia.} \\ 
+\end{tabular} 
+\end{table}
+
+\begin{table}[ht!] \centering 
+  \caption{Regresión Discontinua con controles (submuestra ĥ alrededor del corte)} 
+  \label{tab:rd_submuestra_h_mujeres_hombres} 
+\begin{tabular}{@{\extracolsep{5pt}} c} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+TRUE \\ 
+\hline \\[-1.8ex] 
+\multicolumn{1}{l}{Errores estándar agrupados por provincia. Submuestra: ±ĥ unidades alrededor del punto de corte. Incluye controles y efectos fijos por provincia.} \\ 
+\end{tabular} 
+\end{table}
+
+\newpage
+
+\textbf{d.~Ecuación principal, para la submuestra a h/2 unidades
+alrededor del corte, con controles}
+
+{[}1{]} ``\,''\\
+{[}2{]} ``\textbackslash begin\{table\}{[}ht!{]}
+\textbackslash centering''\\
+{[}3{]} '' \textbackslash caption\{Regresión Discontinua con controles y
+±ĥ/)\} ''\\
+{[}4{]} ''
+\textbackslash label\{tab:rd\_submuestra\_h2\_mujeres\_hombres\} ''\\
+{[}5{]}
+``\textbackslash begin\{tabular\}\{@\textbackslash\textbackslash extracolsep\{5pt\}lcc\}''\\
+{[}6{]}
+``\textbackslash\textbackslash{[}-1.8ex{]}\textbackslash hline''\\
+{[}7{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}8{]} '' \&
+\textbackslash multicolumn\{2\}\{c\}\{\textbackslash textit\{Dependent
+variable:\}\} \textbackslash\textbackslash{} ''\\
+{[}9{]} ``\textbackslash cline\{2-3\}''\\
+{[}10{]} '' \& Mujeres \& Hombres \textbackslash\textbackslash{} ''\\
+{[}11{]} ``\textbackslash\textbackslash{[}-1.8ex{]} \& (1) \&
+(2)\textbackslash\textbackslash{}''\\
+{[}12{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}13{]} '' Alcalde islámico (Dᵢ) \& 0.0003\(^{**}\) (0.0001) \&
+0.019\(^{*}\) (0.011) \textbackslash\textbackslash{} ''\\
+{[}14{]} '' Número de partidos (1994) \& \$-\(0.002\)\^{}\{\emph{\}\$
+(0.001) \& \$-\$0.005 (0.080) \textbackslash\textbackslash{} ''\\
+{[}15{]} '' Población (log, 1994) \& 0.0001 (0.001) \& \$-\$0.235
+(0.155) \textbackslash\textbackslash{} ''\\
+{[}16{]} '' Proporción 0--19 años \& \$-\$0.00002 (0.00002) \&
+\$-\(0.008\)\^{}\{}\textbf{\}\$ (0.002) \textbackslash\textbackslash{}
+''\\
+{[}17{]} '' Proporción 60+ años \& 0.0001 (0.00005) \& 0.006 (0.005)
+\textbackslash\textbackslash{} ''\\
+{[}18{]} '' Razón de sexo \& \$-\(0.0001\)\^{}\{}\emph{\}\$ (0.00001) \&
+\$-\(0.005\)\^{}\{}**\}\$ (0.001) \textbackslash\textbackslash{} ''\\
+{[}19{]} '' Tamaño promedio del hogar \& \$-\(0.00004\)\^{}\{\emph{\}\$
+(0.00002) \& \$-\(0.004\)\^{}\{\textbf{\}\$ (0.001)
+\textbackslash\textbackslash{} ''\\
+{[}20{]} '' Categoría: Merkezi \& 0.00000 (0.00000) \&
+\$-\(0.0001 (0.0003) \\\\ "
+[21] "  Categoría: Merkezp & 0.00004\)\^{}\{}}\}\$ (0.00002) \&
+0.004\(^{***}\) (0.002) \textbackslash\textbackslash{} ''\\
+{[}22{]} '' Categoría: Sub-Büyük \& 0.001\(^{***}\) (0.0001) \&
+0.057\(^{***}\) (0.008) \textbackslash\textbackslash{} ''\\
+{[}23{]} '' Categoría: Büyük \& 0.001\(^{***}\) (0.0002) \&
+0.038\(^{**}\) (0.016) \textbackslash\textbackslash{} ''\\
+{[}24{]} '' subbuyuk \& 0.0002 (0.0002) \& 0.007 (0.013)
+\textbackslash\textbackslash{} ''\\
+{[}25{]} '' buyuk \& 0.0004 (0.0003) \& 0.034 (0.023)
+\textbackslash\textbackslash{} ''\\
+{[}26{]} '' Constant \& 0.004\(^{***}\) (0.001) \& 0.378\(^{***}\)
+(0.077) \textbackslash\textbackslash{} ''\\
+{[}27{]} '' \textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]} ''\\
+{[}28{]} ``Observations \& 560 \& 560 \textbackslash\textbackslash{}''\\
+{[}29{]} ``R\(^{2}\) \& 0.533 \& 0.283
+\textbackslash\textbackslash{}''\\
+{[}30{]} ``Adjusted R\(^{2}\) \& 0.522 \& 0.265
+\textbackslash\textbackslash{}''\\
+{[}31{]} ``Residual Std. Error (df = 546) \& 0.001 \& 0.064
+\textbackslash\textbackslash{}''\\
+{[}32{]} ``F Statistic (df = 13; 546) \& 47.980\(^{***}\) \&
+16.539\(^{***}\) \textbackslash\textbackslash{}''\\
+{[}33{]} ``\textbackslash hline''\\
+{[}34{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}35{]} ``\textbackslash textit\{Note:\} \&
+\textbackslash multicolumn\{2\}\{r\}\{\(^{*}\)p\$\textless\$0.1;
+\(^{**}\)p\$\textless\$0.05; \(^{***}\)p\$\textless\$0.01\}
+\textbackslash\textbackslash{}''\\
+{[}36{]} '' \& \textbackslash multicolumn\{2\}\{r\}\{Errores estándar
+agrupados por provincia. Submuestra: ±ĥ/2 unidades alrededor del punto
+de corte. Incluye controles y efectos fijos por provincia.\}
+\textbackslash\textbackslash{} '' {[}37{]}
+``\textbackslash end\{tabular\}''\\
+{[}38{]} ``\textbackslash end\{table\}''\\
+{[}39{]} ``\,''\\
+{[}40{]} ``\textbackslash begin\{table\}{[}ht!{]}
+\textbackslash centering''\\
+{[}41{]} '' \textbackslash caption\{Regresión Discontinua con controles
+y ±ĥ/)\} ''\\
+{[}42{]} ''
+\textbackslash label\{tab:rd\_submuestra\_h2\_mujeres\_hombres\} ''\\
+{[}43{]}
+``\textbackslash begin\{tabular\}\{@\textbackslash\textbackslash extracolsep\{5pt\}
+c\}''\\
+{[}44{]}
+``\textbackslash\textbackslash{[}-1.8ex{]}\textbackslash hline''\\
+{[}45{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}46{]} ``TRUE \textbackslash\textbackslash{}''\\
+{[}47{]} ``\textbackslash hline
+\textbackslash\textbackslash{[}-1.8ex{]}''\\
+{[}48{]} ``\textbackslash multicolumn\{1\}\{l\}\{Errores estándar
+agrupados por provincia. Submuestra: ±ĥ/2 unidades alrededor del punto
+de corte. Incluye controles y efectos fijos por provincia.\}
+\textbackslash\textbackslash{}''\\
+{[}49{]} ``\textbackslash end\{tabular\}''\\
+{[}50{]} ``\textbackslash end\{table\}''
+
+\newpage
+
+\subsubsection{3. A partir de los resultados encontrados en el anterior
+punto,
+respondan:}\label{a-partir-de-los-resultados-encontrados-en-el-anterior-punto-respondan}
+
+\textbf{a. ¿Por qué cambian los coeficientes entre especificaciones?}
+
+Los coeficientes cambian entre especificaciones porque cada modelo
+incorpora distintos supuestos y grados de control sobre posibles
+problemas de sesgo. En la primera estimación, que no incluye variables
+de control, el modelo capta únicamente la discontinuidad simple en torno
+al umbral de victoria electoral. Al introducir controles socioeconómicos
+y demográficos en las siguientes especificaciones, el modelo mejora la
+estimación del efecto del alcalde islámico de otras características
+municipales que también pueden influir en la educación. Asimismo, al
+restringir la muestra a bandas más estrechas alrededor del punto de
+corte, se reduce la heterogeneidad entre observaciones, lo que mejora la
+validez causal pero puede aumentar la varianza de la estimación. Por
+estas razones, los coeficientes cambian ligeramente entre
+especificaciones, reflejando cómo la inclusión de controles y la
+reducción del ancho de banda afectan la precisión y el sesgo potencial
+del estimador
+
+\textbf{b. ¿Cuál parece ser el impacto de la llegada al poder del
+Partido Islámico para las mujeres? ¿Parece ser este impacto robusto a
+las especificaciones?}
+
+En cuanto al efecto de la llegada al poder del partido islámico sobre la
+educación de las mujeres, los resultados muestran que este impacto es
+positivo y estadísticamente significativo en las especificaciones que
+integran controles y restringen la muestra alrededor del umbral. En
+particular, en los modelos de regresión discontinua con controles, tanto
+en la muestra con ancho de banda óptimo como en la reducida a la mitad,
+el coeficiente asociado a tener un alcalde islámico es positivo y
+significativo al 1\% o 5\%. Esto sugiere que la presencia de un gobierno
+municipal islámico se asocia con una mayor proporción de mujeres jóvenes
+que completan la educación secundaria.
+
+Finalmente, el hecho de que los coeficientes se mantengan positivos y
+significativos para las mujeres en las distintas especificaciones indica
+que el resultado es robusto. A pesar de los cambios en la inclusión de
+controles o en el tamaño de la muestra, la dirección y magnitud del
+efecto son consistentes, mientras que para los hombres los coeficientes
+no son estadísticamente significativos en la mayoría de los casos. Esto
+refuerza la interpretación de que el impacto de los alcaldes islámicos
+es específico al grupo femenino y que los resultados no dependen de una
+especificación particular del modelo, sino que se sostienen bajo
+diferentes estrategias de estimación.
+
+\subsubsection{4. Finalmente, presenten evidencia a favor (o en contra)
+del supuesto de identificación, para
+esto:}\label{finalmente-presenten-evidencia-a-favor-o-en-contra-del-supuesto-de-identificaciuxf3n-para-esto}
+
+\textbf{a. Presenten en una gráfica de la distribución kernel o el
+histograma de la variable de asignación}\(x_i\) \textbf{¿Parece haber
+manipulación?}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Taller5_RD_CamilaCaraballo_LauraRivera_files/figure-latex/unnamed-chunk-8-1.pdf}}
+
+El gráfico no indica la presencia de manipulación en el umbral de
+asignación. El supuesto de no manipulación en el diseño de regresión
+discontinua requiere que la densidad de observaciones en la variable de
+running sea continua en el punto de corte (que en este caso se marca en
+el punto 0). La densidad que se observa es suave y no presenta un
+quiebre, un salto o una caída abrupta en el umbral. Esta continuidad es
+una evidencia fundamental que sugiere que la probabilidad de ganar o
+perder por un margen pequeño es practicamente la misma, lo cual valida
+la asignación del tratamiento como cuasi-aleatoria.
+
+\newpage
+
+\textbf{b. En una tabla presenten los resultados de estimar la ecuación
+de interés, sin controles, pero incluyendo} \(f(x_i)\) \textbf{tomando
+como variables dependientes: i) la elección de un alcalde del partido
+Islámico en 1984 (i89) y ii) el logaritmo de la población en 1994
+(lpop1994). Para esto, usen únicamente la muestra de elecciones
+alrededor del ancho de banda óptimo. Dados sus resultados, ¿parece haber
+continuidad en estas variables?}
+
+\begin{table}[ht!] \centering 
+  \caption{Prueba de continuidad en variables específicas} 
+  \label{tab:continuidad_predeterminadas} 
+\begin{tabular}{@{\extracolsep{5pt}}lcc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & \multicolumn{2}{c}{\textit{Dependent variable:}} \\ 
+\cline{2-3} 
+\\[-1.8ex] & Alcalde islámico en 1984 & Log población 1994 \\ 
+\\[-1.8ex] & (1) & (2)\\ 
+\hline \\[-1.8ex] 
+ Ganó alcalde islámico & $-$0.005 (0.048) & 0.181 (0.183) \\ 
+  Margen electoral & 0.375$^{***}$ (0.117) & $-$0.947 (0.903) \\ 
+  Interacción margen x ganador & 0.064 (0.452) & 2.004 (1.904) \\ 
+  Constant & 0.090$^{***}$ (0.020) & 8.058$^{***}$ (0.153) \\ 
+ \hline \\[-1.8ex] 
+Observations & 718 & 968 \\ 
+R$^{2}$ & 0.030 & 0.004 \\ 
+Adjusted R$^{2}$ & 0.026 & 0.001 \\ 
+Residual Std. Error & 0.244 (df = 714) & 1.508 (df = 964) \\ 
+F Statistic & 7.254$^{***}$ (df = 3; 714) & 1.254 (df = 3; 964) \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{2}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+\end{tabular} 
+\end{table}
+
+\begin{table}[ht!] \centering 
+  \caption{Prueba de continuidad en variables específicas} 
+  \label{tab:continuidad_predeterminadas} 
+\begin{tabular}{@{\extracolsep{5pt}} c} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+TRUE \\ 
+\hline \\[-1.8ex] 
+\end{tabular} 
+\end{table}
+
+\newpage
+
+\textbf{c.~Dados sus resultados en los incisos a y b, ¿es plausible el
+supuesto de identificación? Expliquen por qué.}
+
+Los resultados indican una continuidad en las covariables analizadas.
+Esta prueba permite confirmar que variables que no deberían ser
+afectadas por el resultado electoral de 1994 no muestran un salto
+significativo en el punto de corte. La continuidad se verifica al
+observar que el coeficiente estimado, que captura la discontinuidad en
+el punto de corte, es estadísticamente indistinguible de cero para las
+variables analizadas. Específicamente, el valor P amplio para el Alcalde
+Islámico en 1989 (0.781) y para el Logaritmo de la Población en 1994
+(0.866) demuestra que no existe una diferencia significativa en el
+historial político o el tamaño poblacional entre los municipios que
+apenas ganaron y los que apenas perdieron la elección de 1994. Esta
+ausencia de un salto brusco en las covariables antes del tratamiento
+refuerza la credibilidad de que la asignación del tratamiento es
+aleatoria en el umbral, lo cual es el supuesto de identificación central
+del diseño de regresión discontinua.
+
+\end{document}

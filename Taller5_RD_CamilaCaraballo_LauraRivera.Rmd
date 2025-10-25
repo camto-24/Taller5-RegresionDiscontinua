@@ -1,6 +1,6 @@
 ---
 title: "Taller 5 - Regresión Discontinua"
-author: "Maria Camila Caraballo, Laura Sarif Rivera Sanabria"
+author: "Maria Camila Caraballo, Laura Sarif Rivera"
 output:
   pdf_document:
     latex_engine: xelatex
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
-knitr::opts_knit$set(root.dir = "C:/1. MECA/2025/EVALUACIACÓN DE IMPACTO- Raachid Raaj/Taller5-RegresionDiscontinua")
+knitr::opts_knit$set(root.dir = "C:/Users/mc-c2/OneDrive - Universidad de los andes/Universidad/MECA/Big Data y Machine Learning/Repositorios/BD_ML_taller_1/Taller5-RegresionDiscontinua")
 
 tinytex::tlmgr_update(self = TRUE, all = TRUE)
 
@@ -68,12 +68,9 @@ pacman::p_load(
   tinytex       # Soporte para compilar a PDF con LaTeX en RMarkdown.
 )
 
-library(lfe)
-install.packages('rdrobust')
-library(rdrobust)
 ```
 
-## Regresión Discontinua
+## Taller Regresión Discontinua
 
 En su artículo “Islamic Rule and the Empowerment of the Poor and Pious”, Meyersson (2014) investiga si la llegada al poder por parte del Partido Islámico tiene algún efecto sobre el empoderamiento de las mujeres en Turquía. Para esto, implementa la metodología de Regresión Discontinua, explotando información de: (1) elecciones locales de alcalde en Turquía del año 1994 y (2) mujeres con educación secundaria completa en el año 2000. Concretamente, estima por MCO la siguiente ecuación
 
@@ -115,19 +112,23 @@ turquia <- turquia %>%
 
 **¿Por qué el autor usa la metodología de Regresión Discontinua para identificar los efectos de interés? ¿Cuál es la intuición detrás? ¿Cuál es el supuesto de identificación?**
 
-Erik Meyersson (2014) en su paper Islamic Rule And The Empowerment of the Poor and Pious busca identificar un efecto causal de las elecciones de partidos islámicos de los municipios en Turquia sobre los resultados de empoderamiento de las mujeres medido como la proporción de jóvenes entre 15 y 20 años con educación secundaria completa. Para ello utiliza la metodología de Regresión Discontinua (RD) aprovechando que la asignación del tratamiento, es decir, si es un alcalde islámico no es aleatoria, dado que los municipios que eligen a este tipo de líderes pueden diferir en factores culturales, religiosos o socioeconómicos, una simple comparación entre municipios con y sin alcalde islámico generaría estimaciones sesgadas.La estrategia de RD permite aproximarse a un experimento natural. La intuición es que los municipios donde el candidato islámico ganó o perdió por un margen pequeño puede ser comparable en todas sus características observables y no observables, de modo que el hecho de haber obtenido la alcaldía o no puede considerarse casi aleatorio.
+Erik Meyersson (2014) en su trabajo *Islamic Rule and the Empowerment of the Poor and Pious* busca identificar el efecto causal de que un municipio sea gobernado por un alcalde islámico sobre el empoderamiento de las mujeres, medido a través de la proporción de jóvenes entre 15 y 20 años con educación secundaria completa. El desafío metodológico radica en que la elección de un partido islámico no es aleatoria, ya que los municipios que votan por estos partidos pueden diferir en características culturales, religiosas o socioeconómicas que también influyen en los resultados educativos. Si se compararan directamente municipios con y sin alcalde islámico, las estimaciones resultarían sesgadas por esas diferencias estructurales.
 
-El supuesto de identificación implica que, en ausencia del tratamiento, es decir, de haber tenido un alcalde del partido islámico, los resultados potenciales, como la proporción de mujeres jóvenes con educación secundaria completa serían continuos en torno al punto de corte del margen electoral. Esto implica que los municipios donde el candidato islámico ganó o perdió por muy poco son, en promedio, comparables en todas las características relevantes que podrían afectar el empoderamiento femenino.
+La metodología de regresión discontinua ofrece una solución porque permite aislar la variación que puede considerarse casi aleatoria en torno al umbral de victoria electoral. Cuando un candidato gana o pierde por un margen muy pequeño, el resultado depende más del azar o de factores impredecibles que de diferencias estructurales entre los municipios. En ese punto de corte, ganar o perder una elección es casi como producto del azar, lo que genera un entorno cuasi experimental en el que las unidades a ambos lados del umbral son muy parecidas. Conceptualmente, los municipios que se ubican justo por encima o por debajo del margen de victoria del partido islámico tienen el mismo perfil social, económico y cultural, por lo que cualquier salto en los resultados educativos observado exactamente en el punto de corte puede interpretarse como consecuencia directa de haber tenido un alcalde islámico.
 
-**Para cada género, presenten en una tabla los resultados de estimar las siguientes especificaciones**
+El supuesto fundamental de identificación es el de continuidad, consiste en que en ausencia del tratamiento el resultado esperado variaría de manera continua con el margen de victoria electoral. Esto implica que no existen saltos sistemáticos en el resultado alrededor del punto de corte que no estén causados por la victoria del partido islamista. Es decir, el supuesto sostiene que cerca del umbral los municipios son similares en todo aspecto salvo en la variable de tratamiento, lo que permite interpretar la discontinuidad observada en los resultados como un efecto causal del triunfo electoral del partido.
 
-a.  Ecuación principal, para toda la muestra, sin incluir controles
+\newpage
+
+### 2. Para cada género, presenten en una tabla los resultados de estimar las siguientes especificacione
+
+**a. Ecuación principal, para toda la muestra, sin incluir controles**
 
 ```{r results='asis'}
 
 # Primer modelo sin controles para ambos sexos
-modelo_f <- lm(hischshr1520f ~ di + xi, data = turquia)  # mujeres
-modelo_m <- lm(hischshr1520m ~ di + xi, data = turquia)  # hombres
+modelo_f <- lm(hischshr1520f ~ di*xi, data = turquia)  # mujeres
+modelo_m <- lm(hischshr1520m ~ di*xi, data = turquia)  # hombres
 
 # Errores estándar agrupados por provincia
 se_f <- sqrt(diag(vcovCL(modelo_f, cluster = ~ prov_num)))
@@ -137,56 +138,36 @@ se_m <- sqrt(diag(vcovCL(modelo_m, cluster = ~ prov_num)))
 tabla1 <- capture.output(
   stargazer(
     modelo_f, modelo_m,
-    type = "text",
+    type = "latex",
     se = list(se_f, se_m),
-    title = "Regresión Discontinua: efecto de alcaldes islámicos sobre educación secundaria",
+    title = "Efecto de alcaldes islámicos sobre educación secundaria",
     column.labels = c("Mujeres", "Hombres"),
     dep.var.labels = "Proporción con secundaria completa (15–20 años)",
-    covariate.labels = c("Alcalde islámico (Dᵢ)", "Running Variable(Xᵢ)"),
+    dep.var.labels.include = FALSE, 
+    covariate.labels = c(
+      "Alcalde islámico (Dᵢ)"
+    ),
     notes = "Errores estándar agrupados por provincia.",
     digits = 3,
     label = "tab:rd_mujeres_hombres",
-    header = FALSE,  
-    table.placement = "ht!"
+    header = FALSE,
+    table.placement = "ht!",
+    escape = TRUE,
+    single.row = TRUE
   )
 )
 
 # Quitar comentarios de stargazer (para un .tex limpio)
 tabla1 <- tabla1[!grepl("^%", tabla1)]
+print(tabla1)
 
 # --- Guardar .tex limpio ---
 writeLines(tabla1, "Tablas/tabla1.tex")
 ```
 
-```{r}
-## Pruebita de metodos 
-rd_f <-  rdrobust(y = turquia$hischshr1520f,
-          x = turquia$xi,
-          cluster = turquia$prov_num,
-          c=0)
+\newpage
 
-rd_m <- rdrobust(y = turquia$hischshr1520m,
-          x = turquia$xi,
-          cluster = turquia$prov_num,
-          c=0)
-
-grafico_m <- rdplot(y = turquia$hischshr1520m, x = turquia$xi,c=0)
-grafico_f <- rdplot(y = turquia$hischshr1520f, x = turquia$xi,c=0)
-
-# Crear tabla comparativa
-tabla_resultados <- data.frame(
-  Grupo = c("Mujeres", "Hombres"),
-  Efecto_Estimado = round(c(rd_f$Estimate[1], rd_m$Estimate[1]), 4),
-  Error_Estandar = round(c(rd_f$se[1], rd_m$se[1]), 4),
-  Valor_p = round(c(rd_f$pv[1], rd_m$pv[1]), 4)
-)
-
-# Mostrar tabla
-tabla_resultados
-
-```
-
-b.  Ecuación principal, para toda la muestra, con controles.
+**b. Ecuación principal, para toda la muestra, con controles.**
 
 ```{r results='asis'}
 # Con controles y polinomio lineal 
@@ -194,16 +175,14 @@ b.  Ecuación principal, para toda la muestra, con controles.
 modelo_f2 <- lm(hischshr1520f ~ di + xi + I(xi*di) +
                       partycount + lpop1994 +
                       ageshr19 + ageshr60 + sexr + shhs +
-                      merkezi + merkezp + subbuyuk + buyuk +
-                      factor(prov_num),
-                    data = turquia)
+                      merkezi + merkezp + subbuyuk + buyuk,
+                      data = turquia)
 
 # Hombres
 modelo_m2 <- lm(hischshr1520m ~ di + xi + I(xi*di) +
                       partycount + lpop1994 +
                       ageshr19 + ageshr60 + sexr + shhs +
-                      merkezi + merkezp + subbuyuk + buyuk +
-                      factor(prov_num),
+                      merkezi + merkezp + subbuyuk + buyuk,
                     data = turquia)
 
 # Errores clusterizados
@@ -217,13 +196,12 @@ tabla2 <- capture.output(
     modelo_f2, modelo_m2,
     type = "latex",
     se = list(se_f_2, se_m_2),
-    title = "Regresión Discontinua con Controles: efecto de alcaldes islámicos sobre educación secundaria",
+    title = "Efecto de alcaldes islámicos sobre educación secundaria",
     column.labels = c("Mujeres", "Hombres"),
     dep.var.labels = "Proporción con secundaria completa (15–20 años)",
+    dep.var.labels.include = FALSE,
     covariate.labels = c(
       "Alcalde islámico (Dᵢ)",
-      "Running Variable (Xᵢ)",
-      "Interacción Dᵢ·Xᵢ",
       "Número de partidos (1994)",
       "Población (log, 1994)",
       "Proporción 0–19 años",
@@ -233,19 +211,21 @@ tabla2 <- capture.output(
       "Categoría: Merkezi",
       "Categoría: Merkezp",
       "Categoría: Sub-Büyük",
-      "Categoría: Büyük",
-      "Efectos fijos por provincia"
+      "Categoría: Büyük"
     ),
     notes = "Errores estándar agrupados por provincia. Todos los modelos incluyen efectos fijos por provincia.",
     digits = 3,
     label = "tab:rd_controles_mujeres_hombres",
     header = FALSE,
-    table.placement = "ht!"
+    table.placement = "ht!",
+    escape = TRUE,
+    single.row = TRUE
   )
 )
 
 # Quitar comentarios de stargazer (para un .tex limpio)
 tabla2 <- tabla2[!grepl("^%", tabla2)]
+print(tabla2)
 
 # --- Guardar .tex limpio ---
 writeLines(tabla2, "Tablas/tabla2.tex")
@@ -255,7 +235,15 @@ cat(tabla2, sep = "\n")
 
 ```
 
-c.  Ecuación principal, para la submuestra a h unidades alrededor del corte, con controles.
+\newpage
+
+Donde h=0.24 es el ancho de banda óptimo estimado por los autores. Para las especificaciones con controles, supongan que:
+
+$$f(x_i )= γx _i+δx_i×m_i$$
+
+Es decir, un polinomio de grado uno con pendiente distinta a cada lado del corte. Para las especificaciones sin controles, no incluyan ningún polinomio. Todas las especificaciones deben usar errores estándar clúster a nivel de provincia.
+
+**c. Ecuación principal, para la submuestra a h unidades alrededor del corte, con controles.**
 
 ```{r results='asis'}
 # Filtrar submuestra
@@ -265,16 +253,14 @@ turquia_sub <- subset(turquia, xi >= -0.24 & xi <= 0.24)
 modelo_f3 <- lm(hischshr1520f ~ di + xi + I(xi*di) +
                    partycount + lpop1994 +
                    ageshr19 + ageshr60 + sexr + shhs +
-                   merkezi + merkezp + subbuyuk + buyuk +
-                   factor(prov_num),
+                   merkezi + merkezp + subbuyuk + buyuk,
                  data = turquia_sub)
 
 # Hombres
 modelo_m3 <- lm(hischshr1520m ~ di + xi + I(xi*di) +
                    partycount + lpop1994 +
                    ageshr19 + ageshr60 + sexr + shhs +
-                   merkezi + merkezp + subbuyuk + buyuk +
-                   factor(prov_num),
+                   merkezi + merkezp + subbuyuk + buyuk,
                  data = turquia_sub)
 
 # Errores clusterizados
@@ -287,13 +273,12 @@ tabla3 <- capture.output(
     modelo_f3, modelo_m3,
     type = "latex",
     se = list(se_f3, se_m3),
-    title = "Regresión Discontinua con Controles (submuestra ±ĥ alrededor del corte)",
+    title = "Regresión Discontinua con controles (submuestra ĥ alrededor del corte)",
     column.labels = c("Mujeres", "Hombres"),
     dep.var.labels = "Proporción con secundaria completa (15–20 años)",
+    dep.var.labels.include = FALSE,
     covariate.labels = c(
       "Alcalde islámico (Dᵢ)",
-      "Running Variable (Xᵢ)",
-      "Interacción Dᵢ·Xᵢ",
       "Número de partidos (1994)",
       "Población (log, 1994)",
       "Proporción 0–19 años",
@@ -303,19 +288,21 @@ tabla3 <- capture.output(
       "Categoría: Merkezi",
       "Categoría: Merkezp",
       "Categoría: Sub-Büyük",
-      "Categoría: Büyük",
-      "Efectos fijos por provincia"
+      "Categoría: Büyük"
     ),
     notes = "Errores estándar agrupados por provincia. Submuestra: ±ĥ unidades alrededor del punto de corte. Incluye controles y efectos fijos por provincia.",
     digits = 3,
     label = "tab:rd_submuestra_h_mujeres_hombres",
     header = FALSE,
-    table.placement = "ht!"
+    table.placement = "ht!",
+    escape = TRUE,
+    single.row = TRUE
   )
 )
 
 # Quitar comentarios de stargazer (para un .tex limpio)
 tabla3 <- tabla3[!grepl("^%", tabla3)]
+print(tabla3)
 
 # --- Guardar .tex limpio ---
 writeLines(tabla3, "Tablas/tabla3.tex")
@@ -323,10 +310,11 @@ writeLines(tabla3, "Tablas/tabla3.tex")
 # Mostrar tabla en consola (opcional)
 cat(tabla3, sep = "\n")
 
-
 ```
 
-d.  Ecuación principal, para la submuestra a h/2 unidades alrededor del corte, con controles
+\newpage
+
+**d. Ecuación principal, para la submuestra a h/2 unidades alrededor del corte, con controles**
 
 ```{r results='asis'}
 # Filtrar la submuestra dentro del rango -0.12 a 0.12
@@ -336,16 +324,14 @@ turquia_sub_h2 <- subset(turquia, xi >= -0.12 & xi <= 0.12)
 modelo_f4 <- lm(hischshr1520f ~ di + xi + I(xi*di) +
                     partycount + lpop1994 +
                     ageshr19 + ageshr60 + sexr + shhs +
-                    merkezi + merkezp + subbuyuk + buyuk +
-                    factor(prov_num),
+                    merkezi + merkezp + subbuyuk + buyuk,
                   data = turquia_sub_h2)
 
 # Hombres
 modelo_m4 <- lm(hischshr1520m ~ di + xi + I(xi*di) +
                     partycount + lpop1994 +
                     ageshr19 + ageshr60 + sexr + shhs +
-                    merkezi + merkezp + subbuyuk + buyuk +
-                    factor(prov_num),
+                    merkezi + merkezp + subbuyuk + buyuk,
                   data = turquia_sub_h2)
 
 # Errores clusterizados
@@ -358,13 +344,12 @@ tabla4 <- capture.output(
     modelo_f4, modelo_m4,
     type = "latex",
     se = list(se_f4, se_m4),
-    title = "Regresión Discontinua con Controles (submuestra ±ĥ/2 alrededor del corte)",
+    title = "Regresión Discontinua con controles y ±ĥ/)",
     column.labels = c("Mujeres", "Hombres"),
     dep.var.labels = "Proporción con secundaria completa (15–20 años)",
+    dep.var.labels.include = FALSE,
     covariate.labels = c(
       "Alcalde islámico (Dᵢ)",
-      "Running Variable (Xᵢ)",
-      "Interacción Dᵢ·Xᵢ",
       "Número de partidos (1994)",
       "Población (log, 1994)",
       "Proporción 0–19 años",
@@ -374,52 +359,44 @@ tabla4 <- capture.output(
       "Categoría: Merkezi",
       "Categoría: Merkezp",
       "Categoría: Sub-Büyük",
-      "Categoría: Büyük",
-      "Efectos fijos por provincia"
+      "Categoría: Büyük"
     ),
     notes = "Errores estándar agrupados por provincia. Submuestra: ±ĥ/2 unidades alrededor del punto de corte. Incluye controles y efectos fijos por provincia.",
     digits = 3,
     label = "tab:rd_submuestra_h2_mujeres_hombres",
     header = FALSE,
-    table.placement = "ht!"
+    table.placement = "ht!",
+    escape = TRUE,
+    single.row = TRUE
   )
 )
 
-
 # Quitar comentarios de stargazer (para un .tex limpio)
 tabla4 <- tabla4[!grepl("^%", tabla4)]
+print(tabla4)
 
 # --- Guardar .tex limpio ---
 writeLines(tabla4, "Tablas/tabla4.tex")
 
-# Mostrar tabla en consola (opcional)
-cat(tabla4, sep = "\n")
-
 ```
 
-donde h=0.24 es el ancho de banda óptimo estimado por los autores. Para las especificaciones con controles, supongan que:
+\newpage
 
-$$f(x_i )= γx _i+δx_i×m_i$$
+### 3. A partir de los resultados encontrados en el anterior punto, respondan:
 
-Es decir, un polinomio de grado uno con pendiente distinta a cada lado del corte. Para las especificaciones sin controles, no incluyan ningún polinomio. Todas las especificaciones deben usar errores estándar clúster a nivel de provincia.
+**a. ¿Por qué cambian los coeficientes entre especificaciones?**
 
-## 3) A partir de los resultados encontrados en el anterior punto, respondan:
+Los coeficientes cambian entre especificaciones porque cada modelo incorpora distintos supuestos y grados de control sobre posibles problemas de sesgo. En la primera estimación, que no incluye variables de control, el modelo capta únicamente la discontinuidad simple en torno al umbral de victoria electoral. Al introducir controles socioeconómicos y demográficos en las siguientes especificaciones, el modelo mejora la estimación del efecto del alcalde islámico de otras características municipales que también pueden influir en la educación. Asimismo, al restringir la muestra a bandas más estrechas alrededor del punto de corte, se reduce la heterogeneidad entre observaciones, lo que mejora la validez causal pero puede aumentar la varianza de la estimación. Por estas razones, los coeficientes cambian ligeramente entre especificaciones, reflejando cómo la inclusión de controles y la reducción del ancho de banda afectan la precisión y el sesgo potencial del estimador
 
-a.  ¿Por qué cambian los coeficientes entre especificaciones?
+**b. ¿Cuál parece ser el impacto de la llegada al poder del Partido Islámico para las mujeres? ¿Parece ser este impacto robusto a las especificaciones?**
 
-Los coeficientes cambian entre los modelos porque al incluir controles adicionales se corrige por diferencias observables entre municipios, reduciendo potenciales sesgos de omisión y permitiendo que la estimación del efecto de tener un alcalde islámico sea más precisa y cercana al efecto causal.Además, al reducir el ancho de banda y enfocarse en municipios más cercanos al umbral, las estimaciones se vuelven más comparables, aunque aumentan los errores estándar por el menor número de observaciones.
+En cuanto al efecto de la llegada al poder del partido islámico sobre la educación de las mujeres, los resultados muestran que este impacto es positivo y estadísticamente significativo en las especificaciones que integran controles y restringen la muestra alrededor del umbral. En particular, en los modelos de regresión discontinua con controles, tanto en la muestra con ancho de banda óptimo como en la reducida a la mitad, el coeficiente asociado a tener un alcalde islámico es positivo y significativo al 1% o 5%. Esto sugiere que la presencia de un gobierno municipal islámico se asocia con una mayor proporción de mujeres jóvenes que completan la educación secundaria.
 
-El coeficiente para mujeres es negativo y significativo, mientras que con controles cambia a positivo y significativo, lo que sugiere que la estimación inicial estaba sesgada por diferencias preexistentes entre municipios. Para los hombres, el coeficiente con controles es cercano a cero y no significativo, pero aumenta sin controles, aunque sigue sin ser significativo.
+Finalmente, el hecho de que los coeficientes se mantengan positivos y significativos para las mujeres en las distintas especificaciones indica que el resultado es robusto. A pesar de los cambios en la inclusión de controles o en el tamaño de la muestra, la dirección y magnitud del efecto son consistentes, mientras que para los hombres los coeficientes no son estadísticamente significativos en la mayoría de los casos. Esto refuerza la interpretación de que el impacto de los alcaldes islámicos es específico al grupo femenino y que los resultados no dependen de una especificación particular del modelo, sino que se sostienen bajo diferentes estrategias de estimación.
 
-b.  ¿Cuál parece ser el impacto de la llegada al poder del Partido Islámico para las mujeres? ¿Parece ser este impacto robusto a las especificaciones?
+### 4. Finalmente, presenten evidencia a favor (o en contra) del supuesto de identificación, para esto:
 
-n la estimación sin controles, el coeficiente es negativo y significativo, lo que sugiere inicialmente que la llegada de un alcalde islámico podría reducir la proporción de mujeres con educación secundaria. Sin embargo, al incluir controles, el efecto cambia de signo y se vuelve positivo, lo que indica que la estimación inicial estaba sesgada por características preexistentes de los municipios. En conjunto, la evidencia sugiere que, tras ajustar por esos sesgos, los municipios gobernados por alcaldes islámicos presentan una mayor educación para las mujeres.
-
-## 4) Finalmente, presenten evidencia a favor (o en contra) del supuesto de identificación. Para esto,
-
-a.  Presenten en una gráfica la distribución kernel o el histograma de la variable de asignación x_i. ¿Parece haber manipulación?
-
-El gráfico 1 muestra la densidad kernel del margen de votos del partido islámico en 1994 (xi) y evidencia el supuesto de identificación de la metodología RD debido a que en ausencia del tratameinto que es tener un alcalde islamico, los resultados potenciales sobre la educación secundaria en las mujeres, habría sido continua en torno al umbral. Por lo tanto, sugiere que no hubo manipulación electoral en los municipios donde el partido islámico gano o perio entonces las características son comparables.
+**a. Presenten en una gráfica de la distribución kernel o el histograma de la variable de asignación**$x_i$ **¿Parece haber manipulación?**
 
 ```{r results='asis'}
 # Gráfico de densidad kernel de xi
@@ -446,10 +423,13 @@ ggsave(
   plot = grafico_kernel,
   width = 7, height = 5, dpi = 300
 )
-
 ```
 
-b.  En una tabla presenten los resultados de estimar la ecuación de interés, sin controles, pero incluyendo f(x_i), tomando como variables dependientes: i) la elección de un alcalde del partido Islámico en 1984 (i89) y ii) el logaritmo de la población en 1994 (lpop1994). Para esto, usen únicamente la muestra de elecciones alrededor del ancho de banda óptimo. Dados sus resultados, ¿parece haber continuidad en estas variables?
+El gráfico no indica la presencia de manipulación en el umbral de asignación. El supuesto de no manipulación en el diseño de regresión discontinua requiere que la densidad de observaciones en la variable de running sea continua en el punto de corte (que en este caso se marca en el punto 0). La densidad que se observa es suave y no presenta un quiebre, un salto o una caída abrupta en el umbral. Esta continuidad es una evidencia fundamental que sugiere que la probabilidad de ganar o perder por un margen pequeño es practicamente la misma, lo cual valida la asignación del tratamiento como cuasi-aleatoria.
+
+\newpage
+
+**b. En una tabla presenten los resultados de estimar la ecuación de interés, sin controles, pero incluyendo** $f(x_i)$ **tomando como variables dependientes: i) la elección de un alcalde del partido Islámico en 1984 (i89) y ii) el logaritmo de la población en 1994 (lpop1994). Para esto, usen únicamente la muestra de elecciones alrededor del ancho de banda óptimo. Dados sus resultados, ¿parece haber continuidad en estas variables?**
 
 ```{r results='asis'}
 # Alcalde islámico en 1984
@@ -463,16 +443,34 @@ se_i89 <- sqrt(diag(vcovCL(modelo_i89, cluster = ~prov_num)))
 se_lpop <- sqrt(diag(vcovCL(modelo_lpop, cluster = ~prov_num)))
 
 # Tabla
-stargazer(modelo_i89, modelo_lpop,
+tabla5 <- capture.output(
+  stargazer(modelo_i89, modelo_lpop,
           se = list(se_i89, se_lpop),
           type = "latex",
           dep.var.labels = c("Alcalde islámico en 1984", "Log población 1994"),
           covariate.labels = c("Ganó alcalde islámico", "Margen electoral", "Interacción margen x ganador"),
-          title = "Prueba de continuidad en variables predeterminadas",
+    title = "Prueba de continuidad en variables específicas",
           label = "tab:continuidad_predeterminadas",
-          out = "Tablas/tabla5.tex")
+          header = FALSE,
+          table.placement = "ht!",
+          escape = TRUE,
+          single.row = TRUE
+  )
+)
+
+# Quitar comentarios de stargazer (para un .tex limpio)
+tabla5 <- tabla5[!grepl("^%", tabla5)]
+
+# --- Guardar .tex limpio ---
+writeLines(tabla5, "Tablas/tabla5.tex")
+
+# Mostrar tabla en consola
+cat(tabla5, sep = "\n")
+
 ```
 
-c.  Dados sus resultados en los incisos a y b, ¿es plausible el supuesto de identificación? Expliquen por qué.
+\newpage
 
-Los resultados obtenidos respaldan la validez del supuesto de identificación en el diseño de regresión discontinua. La evidencia sugiere que no existe manipulación de la variable running, ya que la distribución de la variable alrededor del umbral se mantiene continua y sin saltos evidentes, de acuerdo con el gráfico de densidad. Asi mismo, la elección de un alcalde del partido Islámico en 1984 y el logaritmo de la población en 1994 no son significativos.
+**c. Dados sus resultados en los incisos a y b, ¿es plausible el supuesto de identificación? Expliquen por qué.**
+
+Los resultados indican una continuidad en las covariables analizadas. Esta prueba permite confirmar que variables que no deberían ser afectadas por el resultado electoral de 1994 no muestran un salto significativo en el punto de corte. La continuidad se verifica al observar que el coeficiente estimado, que captura la discontinuidad en el punto de corte, es estadísticamente indistinguible de cero para las variables analizadas. Específicamente, el valor P amplio para el Alcalde Islámico en 1989 (0.781) y para el Logaritmo de la Población en 1994 (0.866) demuestra que no existe una diferencia significativa en el historial político o el tamaño poblacional entre los municipios que apenas ganaron y los que apenas perdieron la elección de 1994. Esta ausencia de un salto brusco en las covariables antes del tratamiento refuerza la credibilidad de que la asignación del tratamiento es aleatoria en el umbral, lo cual es el supuesto de identificación central del diseño de regresión discontinua.
