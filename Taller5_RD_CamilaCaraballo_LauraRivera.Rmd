@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
-knitr::opts_knit$set(root.dir = "C:/Users/mc-c2/OneDrive - Universidad de los andes/Universidad/MECA/Big Data y Machine Learning/Repositorios/BD_ML_taller_1/Taller5-RegresionDiscontinua")
+knitr::opts_knit$set(root.dir = "C:/1. MECA/2025/EVALUACIACÓN DE IMPACTO- Raachid Raaj/Taller5-RegresionDiscontinua")
 
 tinytex::tlmgr_update(self = TRUE, all = TRUE)
 
